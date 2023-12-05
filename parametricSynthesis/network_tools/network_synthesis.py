@@ -1,4 +1,4 @@
-from ParametricSynthesis.network_tools.helper_functions import *
+from parametricSynthesis.network_tools.helper_functions import *
 
 
 def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, tline_inv_corr_factor=1):

@@ -5,5 +5,6 @@ setup(
     version='0.0.1',
     packages = ['parametricSynthesis',
                 'parametricSynthesis.network_tools',
-                'parametricSynthesis.drawing_tools']
+                'parametricSynthesis.drawing_tools'],
+    package_dir = {'parametricSynthesis': 'parametricSynthesis'}
 )
