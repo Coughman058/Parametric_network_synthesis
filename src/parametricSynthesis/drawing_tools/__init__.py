@@ -1,1 +1,1 @@
-from sketching_functions import *
+from .sketching_functions import *
