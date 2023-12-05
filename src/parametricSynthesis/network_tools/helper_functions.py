@@ -1,5 +1,4 @@
 import numpy as np
-from copy import deepcopy
 
 calculate_middle_inverter_constant = lambda dw, gi, gj, zi, zj: np.sqrt(dw**2/(gi*gj*zi*zj))
 calculate_outer_inverter_constant = lambda dw, gi, gj, zi, zj: np.sqrt(dw/(gi*gj*zi*zj))
