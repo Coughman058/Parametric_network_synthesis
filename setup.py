@@ -1,7 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ParametricSynthesis',
+    name='Parametric_Network_Synthesis',
     version='0.0.1',
-    packages = find_packages()
+    packages = ['parametricSynthesis',
+                'parametricSynthesis.network_tools',
+                'parametricSynthesis.drawing_tools']
 )
