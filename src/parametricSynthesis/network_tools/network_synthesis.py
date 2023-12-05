@@ -430,9 +430,9 @@ class network:
 
         net_size = np.size(self.g_arr) - 2
         if net_size % 2 == 0:
-            j0val = self.dw / self.Z[0] / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(g_arr[-1])
+            j0val = self.dw / self.Z[0] / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(self.g_arr[-1])
         else:
-            j0val = self.dw / self.Z[0] / self.g_arr[1] / np.sqrt(self.g_arr[0]) / np.sqrt(g_arr[-1])
+            j0val = self.dw / self.Z[0] / self.g_arr[1] / np.sqrt(self.g_arr[0]) / np.sqrt(self.g_arr[-1])
 
         if fig == None:
             fig, ax = plt.subplots()
