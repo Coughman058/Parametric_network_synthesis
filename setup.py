@@ -1,7 +1,8 @@
-from setuptools import setup, find_packages
+from setuptools import setup, find_namespace_packages
 
 setup(
     name='Parametric_Network_Synthesis',
     version='0.0.1',
-    packages = find_packages(where = 'src', include = '*tools')
+    packages = find_namespace_packages(where = 'src'),
+    package_dir={"": "src"}
 )
