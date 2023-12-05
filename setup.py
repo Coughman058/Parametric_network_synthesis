@@ -3,5 +3,5 @@ from setuptools import setup, find_packages
 setup(
     name='ParametricSynthesis',
     version='0.0.1',
-    packages=['ParametricSynthesis']
+    py_modules=['ParametricSynthesis']
 )
