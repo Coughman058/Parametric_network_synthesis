@@ -1,6 +1,6 @@
 import sympy as sp
 from copy import deepcopy
-from component_ABCD import inductor
+from .component_ABCD import inductor
 import matplotlib.pyplot as plt
 import numpy as np
 

@@ -1,5 +1,5 @@
-from helper_functions import *
-from component_ABCD import *
+from .helper_functions import *
+from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
 
