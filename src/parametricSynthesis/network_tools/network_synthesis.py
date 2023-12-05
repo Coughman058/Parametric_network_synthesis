@@ -1,5 +1,7 @@
-from parametricSynthesis.network_tools.helper_functions import *
-
+from helper_functions import *
+from component_ABCD import *
+from ..drawing_tools.sketching_functions import draw_net_by_type
+import matplotlib.pyplot as plt
 
 def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, tline_inv_corr_factor=1):
     w0 = 2 * np.pi * f0
@@ -104,9 +106,9 @@ class network:
         print([el.val for el in self.net_elements if el.__class__.__name__ == 'capacitor'])
         print('net Ls: ')
         print([el.val for el in self.net_elements if el.__class__.__name__ == 'inductor'])
-        [display(i, el.__class__.__name__) for (i, el) in enumerate(self.net_elements)]
-        [display(el) for (i, el) in enumerate(self.ABCD_mtxs)]
-        display(self.net_subs)
+        # [display(i, el.__class__.__name__) for (i, el) in enumerate(self.net_elements)]
+        # [display(el) for (i, el) in enumerate(self.ABCD_mtxs)]
+        # display(self.net_subs)
 
     def lumped_res(self, n, net_size, omega_sym, include_inductor=True, compensated=False):
         if include_inductor:
