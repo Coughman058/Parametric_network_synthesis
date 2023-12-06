@@ -443,7 +443,7 @@ class network:
         if debug: print('Calculating symbolic scattering matrix...')
         Smtx = self.calculate_Smtx(self.Z0)
         if debug: print('Calculating numerical scattering matrix...')
-        SmtxN = ABCD_to_S(compress_ABCD_array(self.plot_ABCD_mtxs), self.Z0)
+        SmtxN = ABCD_to_S(compress_ABCD_array(self.plot_ABCD_mtxs), self.Z0).subs(self.net_subs)
         if debug: print('plotting results...')
         if method == 'pumpistor':
             Smtx_func = sp.lambdify([omega, self.inv_el.R_active], SmtxN)
