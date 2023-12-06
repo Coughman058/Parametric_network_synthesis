@@ -12,7 +12,10 @@ active_network_prototypes = dict(
     N2_Leg_20dB_R05 = np.array([1.0, 0.3105, 0.1868, 1.1055])
 )
 
-def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, tline_inv_corr_factor=1):
+passive_network_prototypes = dict(
+)
+
+def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     w0 = 2 * np.pi * f0
     Z0 = z_arr[-1]
     C_squid = 1 / (w0 ** 2 * L_squid)
