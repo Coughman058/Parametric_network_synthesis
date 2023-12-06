@@ -440,9 +440,9 @@ class network:
         self.net_subs += self.inverter_no_detuning_subs(omega) + additional_net_subs
         SmtxN = Smtx.subs(self.net_subs)
         if method == 'pumpistor':
-            Smtx_func = fast_lambdify([omega, self.inv_el.R_active], SmtxN)
+            Smtx_func = fast_lambdify(SmtxN, [omega, self.inv_el.R_active], 'numpy')
         elif method == 'pumped_mutual':
-            Smtx_func = fast_lambdify([omega, self.inv_el.Jpa_sym], SmtxN)
+            Smtx_func = fast_lambdify(SmtxN, [omega, self.inv_el.Jpa_sym], 'numpy')
         omega_arr = f_arr_GHz * 2 * np.pi * 1e9
 
         net_size = np.size(self.g_arr) - 2
