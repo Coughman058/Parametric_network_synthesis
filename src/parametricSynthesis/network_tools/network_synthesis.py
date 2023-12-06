@@ -2,6 +2,7 @@ from .helper_functions import *
 from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
+from tensorwaves.function.sympy import fast_lambdify
 
 def get_active_network_prototypes():
     active_network_prototypes = dict(
@@ -439,9 +440,9 @@ class network:
         self.net_subs += self.inverter_no_detuning_subs(omega) + additional_net_subs
         SmtxN = Smtx.subs(self.net_subs)
         if method == 'pumpistor':
-            Smtx_func = sp.lambdify([omega, self.inv_el.R_active], SmtxN)
+            Smtx_func = fast_lambdify([omega, self.inv_el.R_active], SmtxN)
         elif method == 'pumped_mutual':
-            Smtx_func = sp.lambdify([omega, self.inv_el.Jpa_sym], SmtxN)
+            Smtx_func = fast_lambdify([omega, self.inv_el.Jpa_sym], SmtxN)
         omega_arr = f_arr_GHz * 2 * np.pi * 1e9
 
         net_size = np.size(self.g_arr) - 2
