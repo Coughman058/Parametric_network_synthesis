@@ -3,6 +3,15 @@ from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
 
+active_network_prototypes = dict(
+    N3_Butter_20dB = np.array([1.0, 0.5846, 0.6073, 0.2981, 0.9045]),
+    N3_Cheby_20dB_R01 = np.array([1.0, 0.4656, 0.5126, 0.2707, 0.9045]),
+    N3_Cheby_20dB_R05 = np.array([1.0, 0.5899, 0.6681, 0.3753, 0.9045]),
+    N2_Cheby_20dB_R05 = np.array([1.0, 0.3184, 0.1982, 1.1055]),
+    N4_Leg_20dB_R05 = np.array([1.0, 0.6886, 0.8864, 0.8918, 0.2903, 1.1055]),
+    N2_Leg_20dB_R05 = np.array([1.0, 0.3105, 0.1868, 1.1055])
+)
+
 def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, tline_inv_corr_factor=1):
     w0 = 2 * np.pi * f0
     Z0 = z_arr[-1]
