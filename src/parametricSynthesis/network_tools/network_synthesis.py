@@ -434,15 +434,19 @@ class network:
                         label_prepend='',
                         vary_pump=True,
                         method='pumpistor',
-                        focus=True):
+                        focus=True,
+                        debug = False):
         omega = sp.symbols('omega')
+        if debug: print('Calculating symbolic scattering matrix...')
         Smtx = self.calculate_Smtx(self.Z0)
+        if debug: print('Substituting all network values...')
         self.net_subs += self.inverter_no_detuning_subs(omega) + additional_net_subs
         SmtxN = Smtx.subs(self.net_subs)
+        if debug: print('plotting results...')
         if method == 'pumpistor':
-            Smtx_func = fast_lambdify(SmtxN, [omega, self.inv_el.R_active], 'numpy')
+            Smtx_func = fast_lambdify(SmtxN, [omega, self.inv_el.R_active], 'numpy', max_complexity=100)
         elif method == 'pumped_mutual':
-            Smtx_func = fast_lambdify(SmtxN, [omega, self.inv_el.Jpa_sym], 'numpy')
+            Smtx_func = fast_lambdify(SmtxN, [omega, self.inv_el.Jpa_sym], 'numpy', max_complexity=100)
         omega_arr = f_arr_GHz * 2 * np.pi * 1e9
 
         net_size = np.size(self.g_arr) - 2
