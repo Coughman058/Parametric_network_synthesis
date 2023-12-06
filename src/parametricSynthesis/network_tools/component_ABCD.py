@@ -132,19 +132,8 @@ class DegenerateParametricInverter_Amp:
   g_arr: np.ndarray
 
   def __post_init__(self):
-    net_size = np.size(self.g_arr)-2
     self.Zcore = self.omega0_val*self.L
-    # self.Jpa = Jpa_sym
-    # if net_size % 2 == 0:
-
-    #   self.Jpa =
-    #   # self.dw/(self.Zcore*self.g_arr[0]*np.sqrt(self.g_arr[1]))*np.sqrt(self.g_arr[-1])
-    #   # print("network is even, Jpa = ", self.Jpa)
-    # else:
-    #   self.Jpa = self.dw/(self.Zcore*self.g_arr[0]*np.sqrt(self.g_arr[1]))/np.sqrt(self.g_arr[-1])
-    #   print("network is even, Jpa = ", self.Jpa)
-
-    print(f"DEBUG ALL INGREDIENTS: dw = {self.dw}\nZcore = {self.Zcore}\ng_arr = {self.g_arr}\ng0 = {self.g_arr[0]}\ng1 = {self.g_arr[1]}\ngN+1 = {self.g_arr[-1]}")
+    # print(f"Network INGREDIENTS: dw = {self.dw}\nZcore = {self.Zcore}\ng_arr = {self.g_arr}\ng0 = {self.g_arr[0]}\ng1 = {self.g_arr[1]}\ngN+1 = {self.g_arr[-1]}")
     self.signal_inductor = inductor(self.omega1, self.L, self.L)
     self.idler_inductor = inductor(self.omega2, self.L, self.L)
 
