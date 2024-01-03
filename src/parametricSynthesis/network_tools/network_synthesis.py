@@ -2,9 +2,13 @@ from .helper_functions import *
 from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
-from tensorwaves.function.sympy import fast_lambdify
+# from tensorwaves.function.sympy import fast_lambdify
 
 def get_active_network_prototypes():
+    """
+    Returns a dictionary of the active network prototypes, with the keys being the names of the prototypes
+    :return: dictionary of the active network prototypes
+    """
     active_network_prototypes = dict(
         N3_Butter_20dB = np.array([1.0, 0.5846, 0.6073, 0.2981, 0.9045]),
         N3_Cheby_20dB_R01 = np.array([1.0, 0.4656, 0.5126, 0.2707, 0.9045]),
@@ -21,6 +25,17 @@ def get_passive_network_prototypes():
     return passive_network_prototypes
 
 def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
+    """
+    Calculates the network parameters for a given set of g and z values.
+    :param g_arr: array of g values, unique for each filter prototype
+    :param z_arr: array of z values, these are free parameters, but the last one is the output impedance
+    :param f0: center frequency, in Hz
+    :param dw: fractional bandwidth
+    :param L_squid: inductance of the squid
+    :param printout: print the results or not
+    :return: network object, containing the network parameters
+    """
+
     w0 = 2 * np.pi * f0
     Z0 = z_arr[-1]
     C_squid = 1 / (w0 ** 2 * L_squid)
@@ -86,6 +101,24 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
 @dataclass
 class network:
+
+    """
+    Class containing the network parameters for a given set of g and z values.
+    :param omega0_val: center frequency, in rad/s
+    :param g_arr: array of g values, unique for each filter prototype
+    :param dw: fractional bandwidth
+    :param J: array of J values, these are coupling rates
+    :param CC: array of CC values, these are capacitances of the coupling capacitors
+    :param C: array of C values, these are capacitances of the capacitors in the resonators
+    :param Cu: array of C values, these are uncompensated capacitances of the capacitors in the resonators, used for calculating the inductances
+    :param L: array of L values, these are inductances of the inductors in the resonators
+    :param Z: array of Z values, these are impedances of the resonators
+    :param beta: array of beta values, these are the beta values that connect the resonators in coupled-mode theory
+    :param beta_p: beta value of the parametric inverter that sits in teh middle of a degenerate JPA design
+    :param R_active_val: active resistance of the parametric inverter when using the pumpistor model
+
+    """
+
     omega0_val: float
     g_arr: np.ndarray
     dw: float
@@ -109,6 +142,9 @@ class network:
         self.net_size = self.J.size - 1
 
     def debug_printout(self):
+        """
+        Prints out the network parameters
+        """
         print(self.Ftype)
         print(self.Z)
         print("if l4:")
@@ -127,7 +163,19 @@ class network:
         # [display(el) for (i, el) in enumerate(self.ABCD_mtxs)]
         # display(self.net_subs)
 
-    def lumped_res(self, n, net_size, omega_sym, include_inductor=True, compensated=False):
+    def lumped_res(self, n: int, net_size, omega_sym: sp.Symbol, include_inductor=True, compensated=False):
+        """
+        Adds a lumped resonator to the network
+        :param n: location of the resonator in the network, this will be used to name the elements and assign the values
+        to variables
+        :param net_size: number of resonators in the network. This is actually unused in this function, but is used in
+        the lumped_res_compensated function
+        :param omega_sym: the symbol for the angular frequency
+        :param include_inductor: whether to include an inductor in the resonator. This is used for the first resonator
+        in the network, which has the parametric inverter element that includes the inductor
+        :param compensated: whether the capactiors in the resonator are compensated by coupling caps or not
+        :return:
+        """
         if include_inductor:
             ind_symbol = sp.symbols(f'L_{n}', positive=True)
             ind_val = self.L[n]
@@ -154,6 +202,18 @@ class network:
         if include_inductor: self.parameter_subs += [(ind_symbol, Zres_symbol / omega_res_symbol)]
 
     def tline_res(self, n, net_size, omega_sym, res_type='lambda4', use_approx=False):
+
+        """
+        Adds a transmission line resonator to the network
+        :param n: same as in lumped_res
+        :param net_size:  same as in lumped_res
+        :param omega_sym:  same as in lumped_res
+        :param res_type: the type of TLINE resonator to add, either 'lambda4' or 'lambda2'
+        :param use_approx: This is used if you want to truncate the trigonometric functions in the TLINE ABCD matrix
+        to a certain order.
+        :return:
+        """
+
         res_types = ['lambda4_shunt', 'lambda2_shunt']
         # TODO: add 'lambda2_series'
         if res_type not in res_types:
@@ -199,6 +259,14 @@ class network:
         self.net_subs.insert(0, (tline_omega0_symbol, tline_omega0_val))
 
     def cap_cpld_lumped_unit(self, n, net_size, omega_sym, include_inductor=True):
+        """
+        Adds a lumped element resonator and a coupling capacitor in series to the network
+        :param n: same as in lumped_res
+        :param net_size: same as in lumped_res
+        :param omega_sym: same as in lumped_res
+        :param include_inductor: same as in lumped_res
+        :return:
+        """
         # resonator
         self.lumped_res(n, net_size, omega_sym,
                         include_inductor=include_inductor,
@@ -216,14 +284,15 @@ class network:
                                include_inductor=True,
                                tline_inv_Z_corr_factor=1, use_approx=False):
         '''
-        omega_symbol: sp.Symbol
-        Z_symbol:sp.Symbol
-        theta_symbol:sp.Symbol
-        omega0_symbol: sp.Symbol
-
-        Zval:float
-        theta_val:float
-        omega0_val:float
+        Adds a lumped element resonator and a coupling capacitor in series to the network
+        :param n: same as in lumped_res
+        :param net_size: same as in lumped_res
+        :param omega_sym: same as in lumped_res
+        :param include_inductor: same as in lumped_res
+        :param tline_inv_Z_corr_factor: This is used to correct the impedance of the transmission line resonator.
+        This is because the impedance of a transmission line resonator is not the same as the characteristic impedance
+        of the line it is made out of. Derivation here:
+        https://colab.research.google.com/drive/15clNBBCLazeFt3JM8UBDtSIJNKeAENR_?usp=sharing
         '''
         # resonator
         self.lumped_res(n, net_size, omega_sym,
@@ -256,14 +325,14 @@ class network:
                               tline_res_type='lambda4_shunt',
                               use_approx=False):
         '''
-        omega_symbol: sp.Symbol
-        Z_symbol:sp.Symbol
-        theta_symbol:sp.Symbol
-        omega0_symbol: sp.Symbol
-
-        Zval:float
-        theta_val:float
-        omega0_val:float
+        Adds a transmission line resonator and a lambda/4 inverter in series to the network
+        :param n: same as in lumped_res
+        :param net_size: same as in lumped_res
+        :param omega_sym: same as in lumped_res
+        :param tline_inv_Z_corr_factor: same as in tline_cpld_lumped_unit
+        :param tline_res_type: same as in tline_cpld_lumped_unit
+        :param use_approx: same as in tline_cpld_lumped_unit
+        :return:
         '''
         # resonator
         self.tline_res(n, net_size, omega_sym,
@@ -292,6 +361,18 @@ class network:
 
     def circuit_unit(self, Ftype, n, net_size, omega_sym,
                      include_inductor=True, tline_inv_Z_corr_factor=1, use_approx=False):
+        """
+        Adds a circuit unit to the network, this is a unit that is made out of a resonator and a coupler.
+        Makes me wish for switch cases in python.
+        :param Ftype: type of circuit unit, choose from 'cap_cpld_lumped', 'tline_cpld_lumped', 'tline_cpld_tline'
+        :param n: same as in lumped_res
+        :param net_size: same as in lumped_res
+        :param omega_sym: same as in lumped_res
+        :param include_inductor: same as in lumped_res
+        :param tline_inv_Z_corr_factor: same as in tline_cpld_lumped_unit
+        :param use_approx: same as in tline_cpld_lumped_unit
+        :return:
+        """
         Ftype = Ftype.lower()
         if Ftype not in self.Ftypes:
             raise Exception(f"type not incorporated, choose from {self.Ftypes}")
@@ -410,7 +491,12 @@ class network:
             if draw == True:
                 draw_net_by_type(self, self.Ftype)
 
-    def inverter_no_detuning_subs(self, omega):
+    def inverter_no_detuning_subs(self, omega: sp.Symbol):
+        """
+        Generates the substitution dictionary for an inverter with no detuning
+        :param omega: sympy symbol for the angular frequency
+        :return: list of tuples of the form (symbol, value) for the .subs() method
+        """
         return [(self.Z0, 50),
                 # (self.inv_el.phi, 0),
                 (self.inv_el.omega1, omega),
@@ -419,6 +505,11 @@ class network:
                 ]
 
     def calculate_Smtx(self, Z0):
+        """
+        Calculates the scattering matrix for the network
+        :param Z0: characteristic impedance of the environment
+        :return:
+        """
         total_ABCD = self.total_ABCD()
         Smtx = ABCD_to_S(total_ABCD, Z0)
         return Smtx
