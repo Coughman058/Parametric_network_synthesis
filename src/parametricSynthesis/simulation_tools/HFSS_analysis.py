@@ -147,9 +147,9 @@ class interpolated_network_with_inverter_from_filename:
 
         total_ABCD_mtx_evaluated = np.matmul(
             np.matmul(
-                mv(s2p_net_ABCD_mtx_signal).astype(float),
-                mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr)).astype(float)
-            ), mv(s2p_net_ABCD_mtx_idler)).astype(float)
+                mv(s2p_net_ABCD_mtx_signal).astype(np.cdouble),
+                mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr)).astype(np.cdouble)
+            ), mv(s2p_net_ABCD_mtx_idler)).astype(np.cdouble)
 
         #now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
         #so we use moveaxis again
