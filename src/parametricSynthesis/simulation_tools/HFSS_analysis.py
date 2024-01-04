@@ -55,7 +55,7 @@ def mirror_interpolated_function(f):
     :return:
     '''
     def f_mirrored(x):
-        if x >= 0:
+        if np.all(x >= 0):
             return f(x)
         else:
             return -f(-x)
