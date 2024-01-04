@@ -57,7 +57,7 @@ def mirror_interpolated_function(f):
     def f_mirrored(x):
         is_negative_filt = x < 0
         is_positive_filt = x >= 0
-        res = np.empty(x.size)
+        res = np.empty(x.size, dtype = 'complex')
         res[is_negative_filt] = np.conjugate(f(-x[is_negative_filt]))
         res[is_positive_filt] = f(x[is_positive_filt])
         return res
