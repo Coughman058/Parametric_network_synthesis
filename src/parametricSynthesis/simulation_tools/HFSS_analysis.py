@@ -98,6 +98,7 @@ class interpolated_network_with_inverter_from_filename:
     filename: str
     L_sym: sp.Symbol
     inv_J_sym: sp.Symbol
+    omega0_val: float
     dw: float
 
     def __post_init__(self):
@@ -106,6 +107,7 @@ class interpolated_network_with_inverter_from_filename:
         self.interpolated_mirrored_ABCD_functions = interpolate_network_ABCD(self.skrf_network)
         self.inverter = DegenerateParametricInverter_Amp(omega1 = omega_signal,
                                                          omega2 = omega_idler,
+                                                         omega0_val = self.omega0_val,
                                                          L = self.L_sym,
                                                          R_active = R_active,
                                                          Jpa_sym = self.inv_J_sym
