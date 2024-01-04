@@ -458,7 +458,6 @@ class network:
             self.inv_el = DegenerateParametricInverter_Amp(
                 omega0_val=self.omega0_val,
                 dw=self.dw,
-                g_arr=self.g_arr,
                 omega1=signal_omega_sym,
                 omega2=idler_omega_sym,
                 Jpa_sym=Jpa_sym,

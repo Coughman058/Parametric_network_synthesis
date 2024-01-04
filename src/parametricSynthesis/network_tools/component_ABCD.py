@@ -2,13 +2,13 @@ from dataclasses import dataclass
 import sympy as sp
 import numpy as np
 from IPython.display import display
-
+from typing import Union
 '''
 we need classes for each circuit element, in particular, functions that can
 leverage sympy to give symbolic scattering information would be very helpful
 '''
 
-def ABCD_to_S(abcd: sp.Matrix, Z0: sp.Symbol):
+def ABCD_to_S(abcd: Union[sp.Matrix, np.array], Z0: Union[sp.Symbol, float]):
   A = abcd[0,0]
   B = abcd[0,1]
   C = abcd[1,0]
@@ -129,7 +129,6 @@ class DegenerateParametricInverter_Amp:
   R_active: sp.Symbol
   Jpa_sym: sp.Symbol
   dw: float
-  g_arr: np.ndarray
 
   def __post_init__(self):
     self.Zcore = self.omega0_val*self.L
