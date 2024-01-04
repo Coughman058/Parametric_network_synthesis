@@ -61,20 +61,16 @@ def mirror_interpolated_function(f):
             return -f(-x)
     return f_mirrored
 
-def interpolate_network_ABCD(skrf_network):
-  '''
-  takes in an skrf network object and returns a matrix of interpolated functions
-  for each ABCD parameter of the network. Also capable of being evaluated at idler frequencies
-  '''
-  def interpolated_mirrored_ABCD_functions(omega):
-      res = np.zeros((2,2))
-      for i in range(2):
-        for j in range(2):
-          res[i,j] = mirror_interpolated_function(
-              interp1d(skrf_network.f, skrf_network.a[:,i,j])
-          )(omega/2/np.pi)
-      return res
-  return interpolated_mirrored_ABCD_functions
+
+def interpolate_mirrored_ABCD_functions(skrf_network, omega):
+  res = np.zeros((2,2))
+  for i in range(2):
+    for j in range(2):
+      res[i,j] = mirror_interpolated_function(
+          interp1d(skrf_network.f, skrf_network.a[:,i,j])
+      )(omega/2/np.pi)
+  return res
+
 
 # def evaluate_net_ABCD_functions(f_arr, interpolated_mirrored_ABCD_functions):
 #   '''
@@ -106,7 +102,6 @@ class interpolated_network_with_inverter_from_filename:
     def __post_init__(self):
         omega_signal, omega_idler, R_active = sp.symbols("omega, omega_i, R")
         self.skrf_network = import_s2p(self.filename)
-        self.interpolated_mirrored_ABCD_functions = interpolate_network_ABCD(self.skrf_network)
         self.inverter = DegenerateParametricInverter_Amp(omega1 = omega_signal,
                                                          omega2 = omega_idler,
                                                          omega0_val = self.omega0_val,
@@ -123,8 +118,8 @@ class interpolated_network_with_inverter_from_filename:
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1], self.inverter_ABCD)
         #this will return a 2x2xN matrix of floats, with 1xN input arrays
 
-        self.s2p_net_ABCD_mtx_signal = self.interpolated_mirrored_ABCD_functions(omega_arr)
-        self.s2p_net_ABCD_mtx_idler = self.interpolated_mirrored_ABCD_functions(-omega_arr)
+        self.s2p_net_ABCD_mtx_signal = self.interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
+        self.s2p_net_ABCD_mtx_idler = self.interpolate_mirrored_ABCD_functions(self.skrf_network, -omega_arr)
         #these will also return a 2x2xN matrix of floats, with 1xN input
 
         #np.matmul needs Nx2x2 inputs to treat the last two as matrices,
