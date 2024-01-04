@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
 import skrf as rf
+from scipy.interpolate import interp1d
 from ..network_tools.component_ABCD import DegenerateParametricInverter_Amp, ABCD_to_S
 from dataclasses import dataclass
 
@@ -17,7 +18,7 @@ overall pipeline:
   so that f(omega) = -f(-omega)
 - convert the s parameters to an ABCD matrix function, which will return an ABCD matrix at all values of omega
 - attach an inverter element from component_ABCD.py, and create a function that returns the total ABCD matrix from the 
-perspective of the port
+perspective of the signal and idler ports
 - create a function that returns the S matrix from the ABCD matrix as a function of inductance, coupling rate on the inverter, and frequency
 '''
 
@@ -27,23 +28,24 @@ def import_s2p(filename):
   '''
   return rf.Network(filename)
 
-def index_to_abcd(i, j, skrf_network):
-    '''
-    converts an index to the corresponding ABCD parameter in an skrf network object
-    :param i:
-    :param j:
-    :return: correct ABCD method from skrf network object
-    '''
-    if i == 0 and j == 0:
-        return skrf_network.a
-    elif i == 0 and j == 1:
-        return skrf_network.b
-    elif i == 1 and j == 0:
-        return skrf_network.c
-    elif i == 1 and j == 1:
-        return skrf_network.d
-    else:
-        raise ValueError('invalid index')
+#below function is not needed because the skrf network object handles it already
+# def index_to_abcd(i, j, skrf_network):
+#     '''
+#     converts a pair of indices to the corresponding ABCD parameter in an skrf network object
+#     :param i:
+#     :param j:
+#     :return: correct ABCD method from skrf network object
+#     '''
+#     if i == 0 and j == 0:
+#         return skrf_network.a
+#     elif i == 0 and j == 1:
+#         return skrf_network.b
+#     elif i == 1 and j == 0:
+#         return skrf_network.c
+#     elif i == 1 and j == 1:
+#         return skrf_network.d
+#     else:
+#         raise ValueError('invalid index')
 
 def mirror_interpolated_function(f):
     '''
@@ -59,25 +61,25 @@ def mirror_interpolated_function(f):
             return -f(-x)
     return f_mirrored
 
-def interpolate_network_ABCD(skrf_network, num_points = 1000):
+def interpolate_network_ABCD(skrf_network):
   '''
-  takes in an skrf network object and returns a dictionary of interpolated functions
-  for each ABCD parameter of the network using index_to_abcd
+  takes in an skrf network object and returns a matrix of interpolated functions
+  for each ABCD parameter of the network. Also capable of being evaluated at idler frequencies
   '''
   interpolated_mirrored_ABCD_functions = np.empty([2,2], dtype = object)
   for i in range(2):
     for j in range(2):
       interpolated_mirrored_ABCD_functions[i,j] = mirror_interpolated_function(
-          index_to_abcd(i,j,skrf_network).interpolate_self(kind = 'cubic', num_points = num_points)
+          interp1d(skrf_network.f, skrf_network.a[i,j])
       )
   return interpolated_mirrored_ABCD_functions
 
-def evaluate_net_ABCD_functions(f_arr, interpolated_mirrored_ABCD_functions):
-  '''
-  takes in an array of frequencies and returns a matrix of the evaluated ABCD parameters of the network in a 2x2xN shape
-  '''
-  return np.array([[interpolated_mirrored_ABCD_functions[0,0](f_arr), interpolated_mirrored_ABCD_functions[0,1](f_arr)],
-                   [interpolated_mirrored_ABCD_functions[1,0](f_arr), interpolated_mirrored_ABCD_functions[1,1](f_arr)]])
+# def evaluate_net_ABCD_functions(f_arr, interpolated_mirrored_ABCD_functions):
+#   '''
+#   takes in an array of frequencies and returns a matrix of the evaluated ABCD parameters of the network in a 2x2xN shape
+#   '''
+#   return np.array([[interpolated_mirrored_ABCD_functions[0,0](f_arr), interpolated_mirrored_ABCD_functions[0,1](f_arr)],
+#                    [interpolated_mirrored_ABCD_functions[1,0](f_arr), interpolated_mirrored_ABCD_functions[1,1](f_arr)]])
 
 '''
 omega0_val: float
@@ -114,7 +116,7 @@ class interpolated_network_with_inverter_from_filename:
         '''
         returns the S matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
         '''
-        inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1], self.inverter_ABCD)
+        self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1], self.inverter_ABCD)
         #this will return a 2x2xN matrix of floats, with 1xN input arrays
 
         s2p_net_ABCD_mtx_signal = self.interpolated_mirrored_ABCD_functions(omega_arr)
@@ -142,7 +144,7 @@ class interpolated_network_with_inverter_from_filename:
         total_ABCD_mtx_evaluated = np.matmul(
             np.matmul(
                 mv(s2p_net_ABCD_mtx_signal),
-                mv(inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
+                mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
             ), mv(s2p_net_ABCD_mtx_idler))
 
         #now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
