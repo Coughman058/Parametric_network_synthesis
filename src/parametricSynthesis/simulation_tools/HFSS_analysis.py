@@ -123,8 +123,8 @@ class interpolated_network_with_inverter_from_filename:
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1], self.inverter_ABCD)
         #this will return a 2x2xN matrix of floats, with 1xN input arrays
 
-        s2p_net_ABCD_mtx_signal = self.interpolated_mirrored_ABCD_functions(omega_arr)
-        s2p_net_ABCD_mtx_idler = self.interpolated_mirrored_ABCD_functions(-omega_arr)
+        self.s2p_net_ABCD_mtx_signal = self.interpolated_mirrored_ABCD_functions(omega_arr)
+        self.s2p_net_ABCD_mtx_idler = self.interpolated_mirrored_ABCD_functions(-omega_arr)
         #these will also return a 2x2xN matrix of floats, with 1xN input
 
         #np.matmul needs Nx2x2 inputs to treat the last two as matrices,
@@ -147,9 +147,9 @@ class interpolated_network_with_inverter_from_filename:
 
         total_ABCD_mtx_evaluated = np.matmul(
             np.matmul(
-                mv(s2p_net_ABCD_mtx_signal).astype(np.cdouble),
+                mv(self.s2p_net_ABCD_mtx_signal).astype(np.cdouble),
                 mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr)).astype(np.cdouble)
-            ), mv(s2p_net_ABCD_mtx_idler)).astype(np.cdouble)
+            ), mv(self.s2p_net_ABCD_mtx_idler)).astype(np.cdouble)
 
         #now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
         #so we use moveaxis again
