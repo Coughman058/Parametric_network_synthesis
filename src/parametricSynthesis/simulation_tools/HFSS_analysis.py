@@ -156,6 +156,6 @@ class interpolated_network_with_inverter_from_filename:
         total_ABCD_mtx_evaluated_reshaped = np.moveaxis(total_ABCD_mtx_evaluated, 0, -1)
 
         #now we can convert to S parameters using the helper function I already have
-        return ABCD_to_S(total_ABCD_mtx_evaluated_reshaped, 50)
+        return ABCD_to_S(total_ABCD_mtx_evaluated_reshaped, 50, num = True)
 
 
