@@ -118,8 +118,8 @@ class interpolated_network_with_inverter_from_filename:
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1], self.inverter_ABCD)
         #this will return a 2x2xN matrix of floats, with 1xN input arrays
 
-        self.s2p_net_ABCD_mtx_signal = self.interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
-        self.s2p_net_ABCD_mtx_idler = self.interpolate_mirrored_ABCD_functions(self.skrf_network, -omega_arr)
+        self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
+        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network, -omega_arr)
         #these will also return a 2x2xN matrix of floats, with 1xN input
 
         #np.matmul needs Nx2x2 inputs to treat the last two as matrices,
