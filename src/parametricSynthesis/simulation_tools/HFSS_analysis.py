@@ -71,7 +71,7 @@ def interpolate_network_ABCD(skrf_network):
       for i in range(2):
         for j in range(2):
           res[i,j] = mirror_interpolated_function(
-              interp1d(skrf_network.f, skrf_network.a[:,i,j])(omega)
+              interp1d(skrf_network.f, skrf_network.a[:,i,j])(omega/2/np.pi)
           )
       return res
   return interpolated_mirrored_ABCD_functions
