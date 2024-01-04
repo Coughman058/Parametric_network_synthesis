@@ -65,7 +65,7 @@ def mirror_interpolated_function(f):
 
 
 def interpolate_mirrored_ABCD_functions(skrf_network, omega):
-  res = np.zeros((2,2,omega.size))
+  res = np.zeros((2,2,omega.size), dtype = 'complex')
   for i in range(2):
     for j in range(2):
       res[i,j] = mirror_interpolated_function(
