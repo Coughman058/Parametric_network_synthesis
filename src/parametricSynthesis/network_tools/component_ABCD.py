@@ -8,14 +8,20 @@ we need classes for each circuit element, in particular, functions that can
 leverage sympy to give symbolic scattering information would be very helpful
 '''
 
-def ABCD_to_S(abcd: Union[sp.Matrix, np.array], Z0: Union[sp.Symbol, float]):
+def ABCD_to_S(abcd: Union[sp.Matrix, np.array], Z0: Union[sp.Symbol, float], num = False):
   A = abcd[0,0]
   B = abcd[0,1]
   C = abcd[1,0]
   D = abcd[1,1]
   denom = (A+B/Z0+C*Z0+D)
 
-  Smtx = sp.Matrix(
+  if num:
+    Smtx = np.array(
+      [[(A+B/Z0-C*Z0-D)/denom,2*(A*D-B*C)/denom],
+       [2/denom,(-A+B/Z0+C*Z0+D)/denom]]
+      )
+  else:
+    Smtx = sp.Matrix(
       [[(A+B/Z0-C*Z0-D)/denom,2*(A*D-B*C)/denom],
        [2/denom,(-A+B/Z0+C*Z0+D)/denom]]
       )
