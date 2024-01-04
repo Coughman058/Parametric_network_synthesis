@@ -128,7 +128,6 @@ class DegenerateParametricInverter_Amp:
   L: sp.Symbol
   R_active: sp.Symbol
   Jpa_sym: sp.Symbol
-  dw: float
 
   def __post_init__(self):
     self.Zcore = self.omega0_val*self.L

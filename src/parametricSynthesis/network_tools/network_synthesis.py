@@ -457,7 +457,6 @@ class network:
             R_active = sp.symbols('R_{pump}')
             self.inv_el = DegenerateParametricInverter_Amp(
                 omega0_val=self.omega0_val,
-                dw=self.dw,
                 omega1=signal_omega_sym,
                 omega2=idler_omega_sym,
                 Jpa_sym=Jpa_sym,
