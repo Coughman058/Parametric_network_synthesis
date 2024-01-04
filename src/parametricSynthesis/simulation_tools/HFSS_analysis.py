@@ -108,8 +108,8 @@ class interpolated_network_with_inverter_from_filename:
                                                          omega2 = omega_idler,
                                                          L = self.L_sym,
                                                          R_active = R_active,
-                                                         Jpa_sym = self.inv_J_sym,
-                                                         dw = self.dw)
+                                                         Jpa_sym = self.inv_J_sym
+                                                         )
         self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, -omega_signal)#this makes it totally degenerate
 
     def evaluate_Smtx(self, L_arr, Jpa_arr, omega_arr):
