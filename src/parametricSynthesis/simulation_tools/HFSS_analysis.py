@@ -70,7 +70,7 @@ def interpolate_network_ABCD(skrf_network):
   for i in range(2):
     for j in range(2):
       interpolated_mirrored_ABCD_functions[i,j] = mirror_interpolated_function(
-          interp1d(skrf_network.f, skrf_network.a[i,j])
+          interp1d(skrf_network.f, skrf_network.a[:,i,j])
       )
   return interpolated_mirrored_ABCD_functions
 
@@ -102,8 +102,8 @@ class interpolated_network_with_inverter_from_filename:
 
     def __post_init__(self):
         omega_signal, omega_idler, R_active = sp.symbols("omega, omega_i, R")
-        skrf_network = import_s2p(self.filename)
-        self.interpolated_mirrored_ABCD_functions = interpolate_network_ABCD(skrf_network)
+        self.skrf_network = import_s2p(self.filename)
+        self.interpolated_mirrored_ABCD_functions = interpolate_network_ABCD(self.skrf_network)
         self.inverter = DegenerateParametricInverter_Amp(omega1 = omega_signal,
                                                          omega2 = omega_idler,
                                                          L = self.L_sym,
