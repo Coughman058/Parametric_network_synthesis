@@ -58,7 +58,7 @@ def mirror_interpolated_function(f):
         if np.all(x >= 0):
             return f(x)
         else:
-            return -f(-x)
+            return np.conjugate(f(x)) #for an all-complex network, this is the same as -f(-x)
     return f_mirrored
 
 
