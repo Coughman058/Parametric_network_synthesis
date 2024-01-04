@@ -66,12 +66,14 @@ def interpolate_network_ABCD(skrf_network):
   takes in an skrf network object and returns a matrix of interpolated functions
   for each ABCD parameter of the network. Also capable of being evaluated at idler frequencies
   '''
-  interpolated_mirrored_ABCD_functions = np.empty([2,2], dtype = object)
-  for i in range(2):
-    for j in range(2):
-      interpolated_mirrored_ABCD_functions[i,j] = mirror_interpolated_function(
-          interp1d(skrf_network.f, skrf_network.a[:,i,j])
-      )
+  def interpolated_mirrored_ABCD_functions(omega):
+      res = np.zeros((2,2), dtype = object)
+      for i in range(2):
+        for j in range(2):
+          res[i,j] = mirror_interpolated_function(
+              interp1d(skrf_network.f, skrf_network.a[:,i,j])
+          )
+      return res
   return interpolated_mirrored_ABCD_functions
 
 # def evaluate_net_ABCD_functions(f_arr, interpolated_mirrored_ABCD_functions):
