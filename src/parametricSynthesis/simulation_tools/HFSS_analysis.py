@@ -55,10 +55,12 @@ def mirror_interpolated_function(f):
     :return:
     '''
     def f_mirrored(x):
-        if np.all(x >= 0):
-            return f(x)
-        else:
-            return np.conjugate(f(x)) #for an all-complex network, this is the same as -f(-x)
+        is_negative_filt = x < 0
+        is_positive_filt = x >= 0
+        res = np.empty(x.size)
+        res[is_negative_filt] = np.conjugate(f(-x[is_negative_filt]))
+        res[is_positive_filt] = f(x[is_positive_filt])
+        return res
     return f_mirrored
 
 
@@ -109,7 +111,7 @@ class interpolated_network_with_inverter_from_filename:
                                                          R_active = R_active,
                                                          Jpa_sym = self.inv_J_sym
                                                          )
-        self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, -omega_signal)#this makes it totally degenerate
+        self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
 
     def evaluate_Smtx(self, L_arr, Jpa_arr, omega_arr):
         '''
@@ -119,7 +121,7 @@ class interpolated_network_with_inverter_from_filename:
         #this will return a 2x2xN matrix of floats, with 1xN input arrays
 
         self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
-        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network, -omega_arr)
+        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr-2*self.omega0_val)
         #these will also return a 2x2xN matrix of floats, with 1xN input
 
         #np.matmul needs Nx2x2 inputs to treat the last two as matrices,
