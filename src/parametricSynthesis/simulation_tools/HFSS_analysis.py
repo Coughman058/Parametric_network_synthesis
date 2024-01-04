@@ -67,7 +67,7 @@ def interpolate_network_ABCD(skrf_network):
   for each ABCD parameter of the network. Also capable of being evaluated at idler frequencies
   '''
   def interpolated_mirrored_ABCD_functions(omega):
-      res = np.zeros((2,2), dtype = object)
+      res = np.zeros((2,2))
       for i in range(2):
         for j in range(2):
           res[i,j] = mirror_interpolated_function(
@@ -147,9 +147,9 @@ class interpolated_network_with_inverter_from_filename:
 
         total_ABCD_mtx_evaluated = np.matmul(
             np.matmul(
-                mv(self.s2p_net_ABCD_mtx_signal).astype(np.cdouble),
-                mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr)).astype(np.cdouble)
-            ), mv(self.s2p_net_ABCD_mtx_idler)).astype(np.cdouble)
+                mv(self.s2p_net_ABCD_mtx_signal),
+                mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
+            ), mv(self.s2p_net_ABCD_mtx_idler))
 
         #now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
         #so we use moveaxis again
