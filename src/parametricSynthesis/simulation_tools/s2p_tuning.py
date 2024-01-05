@@ -37,13 +37,13 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
                                        dw=dw_val,
                                        omega0_val=omega0_val) for filename in filenames_sweep]
   #bundle the data into a pandas dataframe for plotly
+  print("DEBUG: L_vals in plotly_1D_sweep is: ", L_vals)
   data_list = []
   for L in L_vals:
     for J in J_vals:
       for sweep_val, HFSS in zip(sweep_vals, HFSS_sweep_sims):
-        omega_arr = np.linspace(-1e9,1e9,300)*2*np.pi + omega0_val
+        omega_arr = np.linspace(-1e9,1e9,401)*2*np.pi + omega0_val
         L_arr = L*np.ones(omega_arr.size)
-        print("DEBUG: L_arr in plotly_1D_sweep is: ", L_arr)
         Jpa_arr = J*np.ones(omega_arr.size)
         Smtx_res = HFSS.evaluate_Smtx(L_arr, Jpa_arr, omega_arr)
         data = pd.DataFrame({'Signal Frequency (GHz)': omega_arr/2/np.pi/1e9,
