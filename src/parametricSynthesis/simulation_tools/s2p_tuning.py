@@ -42,7 +42,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
   data_list = []
   for L in L_vals:
     for J in J_vals:
-      for CC_val, HFSS in zip(sweep_vals, HFSS_sweep_sims):
+      for sweep_val, HFSS in zip(sweep_vals, HFSS_sweep_sims):
         omega_arr = np.linspace(6e9, 8e9,300)*2*np.pi
         L_arr = L*np.ones(omega_arr.size)
         Jpa_arr = J*np.ones(omega_arr.size)
@@ -50,7 +50,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
         data = pd.DataFrame({'Signal Frequencies': omega_arr/2/np.pi/1e9,
                               'Array Inductance': L_arr*1e9,
                               'Inversion Rate': Jpa_arr,
-                              sweep_parameter_name: CC_val*np.ones(omega_arr.size),
+                              sweep_parameter_name: sweep_val*np.ones(omega_arr.size),
                               'S11magDB': 20*np.log10(np.abs(Smtx_res[0,0]))})
         data_list.append(data)
 
@@ -85,7 +85,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
     Sweep = widgets.Dropdown(
         options=sweep_vals,
         value=sweep_vals[0],
-        description='HFSS CC sweep',
+        description=f'{sweep_val_name} sweep',
         disabled=False,
         continuous_update=False,
         orientation='horizontal',
@@ -106,7 +106,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
     def response(change):
         temp_df = total_data.loc[
             (total_data['Array Inductance'] == Inductance.value) & (total_data['Inversion Rate'] == Inversion.value) & (
-                        total_data['CC_val'] == Sweep.value)]
+                        total_data['sweep_val_name'] == Sweep.value)]
         x1 = temp_df[x_axis_name]
         y1 = temp_df[y_axis_name]
         with g.batch_update():
