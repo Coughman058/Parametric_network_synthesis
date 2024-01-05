@@ -116,11 +116,10 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
             g.layout.yaxis.title = y_axis_name
             g.layout.yaxis.range = [-5, 35]
 
-    Inductance.observe(response, names="value")
-    Inversion.observe(response, names="value")
-    Sweep.observe(response, names="value")
+    # Observe change in slider and update
+    slider_list = [Inductance, Inversion, Sweep]
 
-    return widgets.VBox([container,g])
+    return slider_list, response, widgets.VBox([container,g])
     #what you need to do to make this work in google colab:
     # from google.colab import output
     # output.enable_custom_widget_manager()
