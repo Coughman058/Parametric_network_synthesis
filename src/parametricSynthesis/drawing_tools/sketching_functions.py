@@ -74,11 +74,11 @@ def sketch_TLINE_cpld_lambda_over_2(net, l = 1.5):
     d += elm.RBox(label="$Z_0$").up()
     net_size = net.J.size-1
     for n in range(net_size):
-      d += elm.Coax(label = f"$\lambda/4$\n$Z_c$={np.round(1/net.J[net_size-n], 1)} $\Omega$").scale(1).right()
+      d += elm.Coax(label = f"$\lambda/4$\n$Z_c$={np.round(1/net.J[net_size-n]*net.tline_inv_Z_corr_factor, 1)} $\Omega$").scale(1).right()
       d.push()
       d += elm.Coax().down().label(f"$\lambda/2$\n$Z_c=$ {np.round(net.Z[net_size-n]*np.pi/2, 1)} $\Omega$", loc = 'top')
       d.pop()
-    d += elm.Coax(label = f"$\lambda/4$ \n $Z_c$ = {np.round(1/net.J[0], 1)} $\Omega$").scale(1).right()
+    d += elm.Coax(label = f"$\lambda/4$ \n $Z_c$ = {np.round(1/net.J[0]*net.tline_inv_Z_corr_factor, 1)} $\Omega$").scale(1).right()
     d.push()
     d += elm.Inductor2().down().label(f"$L =$ {np.round(net.L[0]*1e12, 1)} pH", loc = 'bottom')
     d += elm.Line().right().length(l/2)
@@ -98,12 +98,12 @@ def sketch_TLINE_cpld_lambda_over_4(net, l = 1.5):
     d += elm.RBox(label="$Z_0$").up()
     net_size = net.J.size-1
     for n in range(net_size):
-      d += elm.Coax(label = f"$\lambda/4$\n$Z_c$={np.round(1/net.J[net_size-n], 1)} $\Omega$").scale(1).right()
+      d += elm.Coax(label = f"$\lambda/4$\n$Z_c$={np.round(1/net.J[net_size-n]*net.tline_inv_Z_corr_factor, 1)} $\Omega$").scale(1).right()
       d.push()
       d += elm.Coax().down().label(f"$\lambda/4$\n$Z_c=$ {np.round(net.Z[net_size-n]*np.pi/4, 1)} $\Omega$", loc = 'top')
       d += elm.Ground()
       d.pop()
-    d += elm.Coax(label = f"$\lambda/4$ \n $Z_c$ = {np.round(1/net.J[0], 1)} $\Omega$").scale(1).right()
+    d += elm.Coax(label = f"$\lambda/4$ \n $Z_c$ = {np.round(1/net.J[0]*net.tline_inv_Z_corr_factor, 1)} $\Omega$").scale(1).right()
     d.push()
     d += elm.Inductor2().down().label(f"$L =$ {np.round(net.L[0]*1e12, 1)} pH", loc = 'bottom')
     d += elm.Line().right().length(l/2)

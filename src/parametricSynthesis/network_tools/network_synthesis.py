@@ -414,6 +414,7 @@ class network:
         self.ABCD_mtxs = []
         self.Z0 = sp.symbols('Z0')
         self.name = Ftype
+        self.tline_inv_Z_corr_factor = tline_inv_Z_corr_factor
 
         '''
         all these elements are ordered from the port outward.
