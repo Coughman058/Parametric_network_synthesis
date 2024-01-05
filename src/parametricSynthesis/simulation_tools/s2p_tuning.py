@@ -47,8 +47,8 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
         L_arr = L*np.ones(omega_arr.size)
         Jpa_arr = J*np.ones(omega_arr.size)
         Smtx_res = HFSS.evaluate_Smtx(L_arr, Jpa_arr, omega_arr)
-        data = pd.DataFrame({'Signal Frequencies': omega_arr/2/np.pi/1e9,
-                              'Array Inductance': L_arr*1e9,
+        data = pd.DataFrame({'Signal Frequency (GHz)': omega_arr/2/np.pi/1e9,
+                              'Array Inductance (nH)': L_arr*1e9,
                               'Inversion Rate': Jpa_arr,
                               sweep_parameter_name: sweep_val*np.ones(omega_arr.size),
                               'S11magDB': 20*np.log10(np.abs(Smtx_res[0,0]))})
@@ -58,7 +58,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
 
     return total_data
 
-def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency', y_axis_name = 'S11magDB'):
+def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency (GHz)', y_axis_name = 'S11magDB'):
     L_vals = np.unique(total_data['Array Inductance'])
     J_vals = np.unique(total_data['Inversion Rate'])
     sweep_vals = np.unique(total_data[sweep_val_name])
@@ -105,7 +105,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
 
     def response(change):
         temp_df = total_data.loc[
-            (total_data['Array Inductance'] == Inductance.value) & (total_data['Inversion Rate'] == Inversion.value) & (
+            (total_data['Array Inductance (nH)'] == Inductance.value) & (total_data['Inversion Rate'] == Inversion.value) & (
                         total_data[sweep_val_name] == Sweep.value)]
         x1 = temp_df[x_axis_name]
         y1 = temp_df[y_axis_name]
