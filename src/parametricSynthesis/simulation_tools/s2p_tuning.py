@@ -106,7 +106,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
     def response(change):
         temp_df = total_data.loc[
             (total_data['Array Inductance'] == Inductance.value) & (total_data['Inversion Rate'] == Inversion.value) & (
-                        total_data['sweep_val_name'] == Sweep.value)]
+                        total_data[sweep_val_name] == Sweep.value)]
         x1 = temp_df[x_axis_name]
         y1 = temp_df[y_axis_name]
         with g.batch_update():
