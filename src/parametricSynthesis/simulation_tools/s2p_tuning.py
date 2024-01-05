@@ -95,7 +95,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
     container = widgets.HBox(children=[Inductance, Inversion, Sweep])
 
     # Assign an empty figure widget with two traces
-    trace1 = go.Line(x=total_data['Signal Frequencies'], opacity=1, name='Gain1')
+    trace1 = go.Line(x=total_data[x_axis_name], opacity=1, name='Gain1')
     g = go.FigureWidget(data=trace1,
                         layout=go.Layout(
                             title=dict(
