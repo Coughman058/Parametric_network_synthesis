@@ -59,13 +59,13 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
     return total_data
 
 def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency (GHz)', y_axis_name = 'S11magDB'):
-    L_vals = np.unique(total_data['Array Inductance'])
+    L_vals = np.unique(total_data['Array Inductance (nH)'])
     J_vals = np.unique(total_data['Inversion Rate'])
     sweep_vals = np.unique(total_data[sweep_val_name])
     Inductance = widgets.Dropdown(
         options=L_vals * 1e9,
         value=L_vals[0] * 1e9,
-        description='Array Inductance',
+        description='Array Inductance (nH)',
         disabled=False,
         continuous_update=False,
         orientation='horizontal',
