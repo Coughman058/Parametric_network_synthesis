@@ -55,7 +55,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
     return total_data
 
 
-def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency (GHz)', y_axis_name = 'S11magDB'):
+def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency (GHz)', y_axis_names = ['S11magDB', 'S21magDB']):
     L_vals = np.unique(total_data['Array Inductance (nH)'])
     J_vals = np.unique(total_data['Inversion Rate'])
     sweep_vals = np.unique(total_data[sweep_val_name])
@@ -106,12 +106,16 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
             (total_data['Array Inductance (nH)'] == Inductance.value) & (total_data['Inversion Rate'] == Inversion.value) & (
                         total_data[sweep_val_name] == Sweep.value)]
         x1 = temp_df[x_axis_name]
-        y1 = temp_df[y_axis_name]
+        y1 = temp_df[y_axis_names[0]]
+        x2 = temp_df[x_axis_name]
+        y2 = temp_df[y_axis_names[1]]
         with g.batch_update():
             g.data[0].x = x1
             g.data[0].y = y1
+            g.data[1].x = x2
+            g.data[1].y = y2
             g.layout.xaxis.title = x_axis_name
-            g.layout.yaxis.title = y_axis_name
+            # g.layout.yaxis.title = y_axis_names
             g.layout.yaxis.range = [-5, 35]
 
     # Observe change in slider and update
