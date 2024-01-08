@@ -189,7 +189,7 @@ class interpolated_network_with_inverter_from_filename:
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
         #impedance matrix and the source impedance
-        port2_input_impedance = Z[2,2]-Z[2,1]*Z[1,2]/(Z[1,1]+Z0)
+        port2_input_impedance = Z[1,1]-Z[1,0]*Z[0,1]/(Z[0,0]+Z0)
 
         return port2_input_impedance
 
@@ -203,7 +203,7 @@ class interpolated_network_with_inverter_from_filename:
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
         #impedance matrix and the source impedance
-        port1_input_impedance = Z[1,1]-Z[2,1]*Z[1,2]/(Z[2,2]+Zl)
+        port1_input_impedance = Z[0,0]-Z[1,0]*Z[0,1]/(Z[1,1]+Zl)
 
         return port1_input_impedance
 
