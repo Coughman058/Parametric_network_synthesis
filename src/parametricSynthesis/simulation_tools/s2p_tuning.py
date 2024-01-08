@@ -16,7 +16,8 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
                                                            L_vals:np.ndarray,
                                                            J_vals:np.ndarray,
                                                            omega0_val:float,
-                                                           dw_val:float):
+                                                           dw_val:float,
+                                                           omega_arr = np.linspace(5e9,9e9,1001)*2*np.pi):
     '''
     takes in a dictionary of filenames and sweep values for a 1D sweep of s2p files,
     and returns a list of functions that return the S matrix of the network
@@ -38,7 +39,6 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
     for L in L_vals:
       for J in J_vals:
         for sweep_val, HFSS in zip(sweep_vals, HFSS_sweep_sims):
-          omega_arr = np.linspace(-1e9,1e9,401)*2*np.pi + omega0_val
           L_arr = L*np.ones(omega_arr.size)
           Jpa_arr = J*np.ones(omega_arr.size)
           Smtx_res = HFSS.evaluate_Smtx(L_arr, Jpa_arr, omega_arr)
