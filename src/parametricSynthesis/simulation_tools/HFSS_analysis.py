@@ -77,7 +77,7 @@ def sum_real_and_imag(freal, fimag):
 
 def interpolate_mirrored_ABCD_functions(skrf_network, omega):
   res = mirror_interpolated_function(
-      sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = -1), interp1d(skrf_network.f, skrf_network.a.imag, axis = -1))
+      sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = 0), interp1d(skrf_network.f, skrf_network.a.imag, axis = 0))
   )(omega/2/np.pi)
   return res
 
