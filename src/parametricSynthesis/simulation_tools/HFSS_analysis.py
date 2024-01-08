@@ -47,22 +47,6 @@ def import_s2p(filename):
 #     else:
 #         raise ValueError('invalid index')
 
-def mirror_interpolated_function(f):
-    '''
-    takes in an interpolated function and returns a new function that returns the original if the argument is greater than 0,
-    and returns the negative of the original if the argument is less than 0
-    :param f:
-    :return:
-    '''
-    def f_mirrored(x):
-        is_negative_filt = x < 0
-        is_positive_filt = x >= 0
-        res = np.empty(x.size, dtype = 'complex')
-        res[is_negative_filt] = np.conjugate(f(-x[is_negative_filt]))
-        res[is_positive_filt] = f(x[is_positive_filt])
-        return res
-    return f_mirrored
-
 def sum_real_and_imag(freal, fimag):
     '''
     takes in two functions that return real and imaginary parts of a complex function, and returns a function that returns the
@@ -76,9 +60,11 @@ def sum_real_and_imag(freal, fimag):
     return fcomplex
 
 def interpolate_mirrored_ABCD_functions(skrf_network, omega):
-  res = mirror_interpolated_function(
-      sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = 0), interp1d(skrf_network.f, skrf_network.a.imag, axis = 0))
-  )(omega/2/np.pi)
+  #first take the skrf_network and extend the frequency range to negative frequencies, conjugating the ABCD matrix at negative frequencies
+  #then interpolate each ABCD parameter
+  skrf_network.f.prepend(-np.flip(skrf_network.f))
+  skrf_network.a.prepend(np.flip(np.conjugate(skrf_network.a), axis = 0))
+  res = sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = 0), interp1d(skrf_network.f, skrf_network.a.imag, axis = 0))(omega/2/np.pi)
   return res
 
 
