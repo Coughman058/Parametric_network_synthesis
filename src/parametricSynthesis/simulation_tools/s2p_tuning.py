@@ -57,7 +57,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
     L_vals = np.unique(total_data['Array Inductance (nH)'])
     J_vals = np.unique(total_data['Inversion Rate'])
     sweep_vals = np.unique(total_data[sweep_val_name])
-    Inductance = widgets.Dropdown(
+    Inductance = widgets.RadioButtons(
         options=L_vals,
         value=L_vals[0],
         description='Array Inductance (nH)',
@@ -67,7 +67,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
         readout=True
     )
 
-    Inversion = widgets.Dropdown(
+    Inversion = widgets.RadioButtons(
         options=J_vals,
         value=J_vals[0],
         description='Inversion Rate',
@@ -77,7 +77,7 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
         readout=True
     )
 
-    Sweep = widgets.Dropdown(
+    Sweep = widgets.RadioButtons(
         options=sweep_vals,
         value=sweep_vals[0],
         description=f'{sweep_val_name} sweep',
