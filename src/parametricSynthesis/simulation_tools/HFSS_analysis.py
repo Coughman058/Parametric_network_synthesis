@@ -60,12 +60,13 @@ def sum_real_and_imag(freal, fimag):
     return fcomplex
 
 def interpolate_mirrored_ABCD_functions(skrf_network, omega):
-  #first take the skrf_network and extend the frequency range to negative frequencies, conjugating the ABCD matrix at negative frequencies
-  #then interpolate each ABCD parameter
-  skrf_network.f = np.insert(skrf_network.f, 0, -np.flip(skrf_network.f))
-  skrf_network.a = np.concatenate([np.flip(np.conjugate(skrf_network.a), axis = 0), skrf_network.a])
-  res = sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = 0), interp1d(skrf_network.f, skrf_network.a.imag, axis = 0))(omega/2/np.pi)
-  return res
+    #first take the skrf_network and extend the frequency range to negative frequencies, conjugating the ABCD matrix at negative frequencies
+    #then interpolate each ABCD parameter
+    skrf_network.f = np.insert(skrf_network.f, 0, -np.flip(skrf_network.f))
+    print("DEBUG skrf_net_shapes:", skrf_network.a.shape, np.flip(np.conjugate(skrf_network.a)).shape)
+    skrf_network.a = np.concatenate([np.flip(np.conjugate(skrf_network.a)), skrf_network.a])
+    res = sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = 0), interp1d(skrf_network.f, skrf_network.a.imag, axis = 0))(omega/2/np.pi)
+    return res
 
 
 # def evaluate_net_ABCD_functions(f_arr, interpolated_mirrored_ABCD_functions):
