@@ -52,7 +52,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
 
     total_data = pd.concat(data_list, ignore_index = True, axis = 0)
 
-    return total_data
+    return total_data, HFSS_sweep_sims
 
 
 def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency (GHz)', y_axis_names = ['S11magDB', 'S21magDB'], yscale = [-5, 35]):
