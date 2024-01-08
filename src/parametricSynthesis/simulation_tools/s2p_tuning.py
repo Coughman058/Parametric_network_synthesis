@@ -34,7 +34,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
                                        dw=dw_val,
                                        omega0_val=omega0_val) for filename in filenames_sweep]
     #bundle the data into a pandas dataframe for plotly
-    print("DEBUG: L_vals in plotly_1D_sweep is: ", L_vals)
+    # print("DEBUG: L_vals in plotly_1D_sweep is: ", L_vals)
     data_list = []
     for L in L_vals:
       for J in J_vals:
