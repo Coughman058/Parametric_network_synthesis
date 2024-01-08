@@ -64,8 +64,8 @@ def interpolate_mirrored_ABCD_functions(skrf_network, omega):
     #then interpolate each ABCD parameter
     skrf_network.f = np.insert(skrf_network.f, 0, -np.flip(skrf_network.f))
     print("DEBUG skrf_net_shapes:", skrf_network.a.shape, np.flip(np.conjugate(skrf_network.a)).shape)
-    skrf_network.a = np.concatenate([np.flip(np.conjugate(skrf_network.a)), skrf_network.a])
-    res = sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = 0), interp1d(skrf_network.f, skrf_network.a.imag, axis = 0))(omega/2/np.pi)
+    skrf_network.a_mirror = np.concatenate([np.flip(np.conjugate(skrf_network.a)), skrf_network.a])
+    res = sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a_mirror.real, axis = 0), interp1d(skrf_network.f, skrf_network.a_mirror.imag, axis = 0))(omega/2/np.pi)
     return res
 
 
