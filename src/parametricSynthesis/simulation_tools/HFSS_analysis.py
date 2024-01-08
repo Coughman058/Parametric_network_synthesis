@@ -112,10 +112,15 @@ class interpolated_network_with_inverter_from_filename:
 
     def evaluate_ABCD_mtx(self, L_arr, Jpa_arr, omega_arr, active = True):
         '''
-                returns the S matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
-                '''
+        returns the S matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
+        This can only handle variation over frequency! The inductance and coupling rate must be constant but match the length of the frequency array
+        '''
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1],
                                              self.inverter_ABCD)
+        #because lambdify only knows how to lambdify matrices that contain variables in every element, we need to arbitrarily multiply it by something then input all ones into that variable
+        size_match_variable = sp.symbol("nnnnnnnnnnn")
+        self.ind_ABCD_mtx_func_ = sp.lambdify([self.signal_inductor.symbol, self.inverter.omega1, size_match_variable], self.signal_inductor.ABCD_shunt()*size_match_variable)
+        self.ind_ABCD_mtx_func = lambda L_arr, omega_arr: self.ind_ABCD_mtx_func_(L_arr, omega_arr, np.ones_like(L_arr))
         # this will return a 2x2xN matrix of floats, with 1xN input arrays
 
         self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
@@ -148,11 +153,12 @@ class interpolated_network_with_inverter_from_filename:
                     mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
                 ), self.s2p_net_ABCD_mtx_idler)
         else:
-            signal_inductor_ABCD_array = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
+            signal_inductor_ABCD_func = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
                                                      self.signal_inductor.ABCDshunt())(omega_arr, L_arr)
+            signal_inductor_ABCD_array = signal_inductor_ABCD_func(omega_arr, L_arr)
             print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
             total_ABCD_mtx_evaluated = np.matmul(
-                signal_inductor_ABCD_array,
+                self.s2p_net_ABCD_mtx_signal,
                 mv(self.inv_ABCD_mtx_func(L_arr, [0], omega_arr))
             )
 
@@ -180,7 +186,7 @@ class interpolated_network_with_inverter_from_filename:
         returns the impedance seen from the inverter
         (as converted from the ABCD matrix)
         '''
-        ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, [0], omega_arr, active = False)
+        ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, np.array([0]), omega_arr, active = False)
         self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, 50, num=True)
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
