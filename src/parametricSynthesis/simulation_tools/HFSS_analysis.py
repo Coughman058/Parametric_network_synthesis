@@ -118,7 +118,7 @@ class interpolated_network_with_inverter_from_filename:
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1],
                                              self.inverter_ABCD)
         #because lambdify only knows how to lambdify matrices that contain variables in every element, we need to arbitrarily multiply it by something then input all ones into that variable
-        size_match_variable = sp.symbol("nnnnnnnnnnn")
+        size_match_variable = sp.symbols("nnnnnnnnnnn")
         self.ind_ABCD_mtx_func_ = sp.lambdify([self.signal_inductor.symbol, self.inverter.omega1, size_match_variable], self.signal_inductor.ABCD_shunt()*size_match_variable)
         self.ind_ABCD_mtx_func = lambda L_arr, omega_arr: self.ind_ABCD_mtx_func_(L_arr, omega_arr, np.ones_like(L_arr))
         # this will return a 2x2xN matrix of floats, with 1xN input arrays
