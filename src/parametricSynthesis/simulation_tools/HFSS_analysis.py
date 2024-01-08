@@ -153,13 +153,11 @@ class interpolated_network_with_inverter_from_filename:
                     mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
                 ), self.s2p_net_ABCD_mtx_idler)
         else:
-            signal_inductor_ABCD_func = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
-                                                     self.signal_inductor.ABCDshunt())(omega_arr, L_arr)
-            signal_inductor_ABCD_array = signal_inductor_ABCD_func(omega_arr, L_arr)
+            signal_inductor_ABCD_array = self.ind_ABCD_mtx_func(omega_arr, L_arr)
             print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
             total_ABCD_mtx_evaluated = np.matmul(
                 self.s2p_net_ABCD_mtx_signal,
-                mv(self.inv_ABCD_mtx_func(L_arr, [0], omega_arr))
+                mv(signal_inductor_ABCD_array)
             )
 
         # now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
