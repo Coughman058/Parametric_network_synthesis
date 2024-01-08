@@ -117,7 +117,7 @@ class interpolated_network_with_inverter_from_filename:
 
         self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
         self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr-2*self.omega0_val)
-        #these will also return a 2x2xN matrix of floats, with 1xN input
+        #these will also return a Nx2x2 matrix of floats, with 1xN input
 
         #np.matmul needs Nx2x2 inputs to treat the last two as matrices,
         #so we use moveaxis to rearrange the first and last axis so that
