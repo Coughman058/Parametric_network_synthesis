@@ -218,9 +218,9 @@ class interpolated_network_with_inverter_from_filename:
         p2_input_admittance = 1/p2_input_impedance
         omega_step = omega_arr[1]-omega_arr[0]
         #now build an interpolation function for both real and the imaginary part of the admittance
-        [re_f, im_f, im_fp] = [sp.interpolate.interp1d(omega_arr, np.real(p2_input_admittance), kind = 'cubic'),
-                               sp.interpolate.interp1d(omega_arr, np.imag(p2_input_admittance), kind = 'cubic'),
-                               sp.interpolate.interp1d(omega_arr, np.imag(np.diff(p2_input_admittance)/omega_step), kind = 'cubic')]
+        [re_f, im_f, im_fp] = [interp1d(omega_arr, np.real(p2_input_admittance), kind = 'cubic'),
+                               interp1d(omega_arr, np.imag(p2_input_admittance), kind = 'cubic'),
+                               interp1d(omega_arr, np.imag(np.diff(p2_input_admittance)/omega_step), kind = 'cubic')]
         #we have to find our initial guesses, which I will get from the number of flips of the sign of the imaginary part of the admittance
         #this is a bit of a hack, but it should work
         #first, find the sign of the imaginary part of the admittance
