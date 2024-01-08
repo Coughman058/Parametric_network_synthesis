@@ -46,7 +46,8 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
                                 'Array Inductance (nH)': L_arr*1e9,
                                 'Inversion Rate': Jpa_arr,
                                 sweep_parameter_name: sweep_val*np.ones(omega_arr.size),
-                                'S11magDB': 20*np.log10(np.abs(Smtx_res[0,0]))})
+                                'S11magDB': 20*np.log10(np.abs(Smtx_res[0,0])),
+                               'S21magDB': 20*np.log10(np.abs(Smtx_res[1,0]))})
           data_list.append(data)
 
     total_data = pd.concat(data_list, ignore_index = True, axis = 0)
@@ -91,8 +92,9 @@ def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_
     container = widgets.HBox(children=[Inductance, Inversion, Sweep])
 
     # Assign an empty figure widget with two traces
-    trace1 = go.Line(x=total_data[x_axis_name], opacity=1, name='Gain1')
-    g = go.FigureWidget(data=trace1,
+    trace1 = go.Line(x=total_data[x_axis_name], opacity=1, name='SignalGain')
+    trace2 = go.Line(x=total_data[x_axis_name], opacity=1, name='IdlerGain')
+    g = go.FigureWidget(data=[trace1, trace2],
                         layout=go.Layout(
                             title=dict(
                                 text='Power Gain in dB'
