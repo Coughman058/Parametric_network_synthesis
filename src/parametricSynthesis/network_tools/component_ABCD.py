@@ -28,6 +28,25 @@ def ABCD_to_S(abcd: Union[sp.Matrix, np.array], Z0: Union[sp.Symbol, float], num
 
   return Smtx
 
+def ABCD_to_Z(abcd: Union[sp.Matrix, np.array], num = False):
+  A = abcd[0,0]
+  B = abcd[0,1]
+  C = abcd[1,0]
+  D = abcd[1,1]
+
+  if num:
+    Zmtx = np.array(
+      [[A / C, (A * D - B * C) / C],
+       [1 / C, D / C]]
+      )
+  else:
+    Smtx = sp.Matrix(
+      [[A / C, (A * D - B * C) / C],
+       [1 / C, D / C]]
+      )
+
+  return Zmtx
+
 
 def compress_ABCD_array(ABCD_mtxs: list, simplify = False, mid_simplify_rules = [], debug = False, ):
   total_ABCD = sp.eye(2)
@@ -39,6 +58,20 @@ def compress_ABCD_array(ABCD_mtxs: list, simplify = False, mid_simplify_rules = 
       display(total_ABCD)
   return total_ABCD
 
+@dataclass
+class resistor:
+  # omega_symbol:sp.Symbol
+  symbol:sp.Symbol
+  val:float
+
+  def impedance_symbolic(self):
+    return self.symbol
+  def impedance_function(self, omega):
+    return self.val
+  def ABCDseries(self):
+    return sp.Matrix([[1,self.impedance_symbolic()],[0,1]])
+  def ABCDshunt(self):
+    return sp.Matrix([[1,0],[1/self.impedance_symbolic(),1]])
 
 @dataclass
 class capacitor:

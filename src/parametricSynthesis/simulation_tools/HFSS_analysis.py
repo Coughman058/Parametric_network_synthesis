@@ -8,8 +8,9 @@ import matplotlib.pyplot as plt
 import sympy as sp
 import skrf as rf
 from scipy.interpolate import interp1d
-from ..network_tools.component_ABCD import DegenerateParametricInverter_Amp, ABCD_to_S
+from ..network_tools.component_ABCD import DegenerateParametricInverter_Amp, ABCD_to_S, ABCD_to_Z
 from dataclasses import dataclass
+from scipy.optimize import root_scalar
 
 '''
 overall pipeline: 
@@ -106,26 +107,30 @@ class interpolated_network_with_inverter_from_filename:
                                                          R_active = R_active,
                                                          Jpa_sym = self.inv_J_sym
                                                          )
+        self.signal_inductor = self.inverter.signal_inductor
         self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
 
-    def evaluate_Smtx(self, L_arr, Jpa_arr, omega_arr):
+    def evaluate_ABCD_mtx(self, L_arr, Jpa_arr, omega_arr, active = True):
         '''
-        returns the S matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
-        '''
-        self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1], self.inverter_ABCD)
-        #this will return a 2x2xN matrix of floats, with 1xN input arrays
+                returns the S matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
+                '''
+        self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1],
+                                             self.inverter_ABCD)
+        # this will return a 2x2xN matrix of floats, with 1xN input arrays
 
         self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
-        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr-2*self.omega0_val)
-        #these will also return a Nx2x2 matrix of floats, with 1xN input
+        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network,
+                                                                          omega_arr - 2 * self.omega0_val)
 
-        #np.matmul needs Nx2x2 inputs to treat the last two as matrices,
-        #so we use moveaxis to rearrange the first and last axis so that
+        # these will also return a Nx2x2 matrix of floats, with 1xN input
+
+        # np.matmul needs Nx2x2 inputs to treat the last two as matrices,
+        # so we use moveaxis to rearrange the first and last axis so that
         # [
         # [[1,2,3],[4,5,6]]
         # [[7,8,9],[10,11,12]]
         # ]
-        #becomes
+        # becomes
         # [
         # [[1,4],
         #  [7,10]],
@@ -135,19 +140,102 @@ class interpolated_network_with_inverter_from_filename:
         #  [9,12]],
         # ]
         def mv(arr):
-            return np.moveaxis(arr, -1,0)
+            return np.moveaxis(arr, -1, 0)
+        if active:
+            total_ABCD_mtx_evaluated = np.matmul(
+                np.matmul(
+                    self.s2p_net_ABCD_mtx_signal,
+                    mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
+                ), self.s2p_net_ABCD_mtx_idler)
+        else:
+            signal_inductor_ABCD_array = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],self.signal_inductor.ABCD_shunt())(omega_arr, L_arr)
+            print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
+            total_ABCD_mtx_evaluated = np.matmul(
+                signal_inductor_ABCD_array,
+                mv(self.inv_ABCD_mtx_func(L_arr, [0], omega_arr))
+            )
 
-        total_ABCD_mtx_evaluated = np.matmul(
-            np.matmul(
-                self.s2p_net_ABCD_mtx_signal,
-                mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
-            ), self.s2p_net_ABCD_mtx_idler)
-
-        #now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
-        #so we use moveaxis again
+        # now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
+        # so we use moveaxis again
         self.total_ABCD_mtx_evaluated_reshaped = np.moveaxis(total_ABCD_mtx_evaluated, 0, -1)
 
-        #now we can convert to S parameters using the helper function I already have
-        return ABCD_to_S(self.total_ABCD_mtx_evaluated_reshaped, 50, num = True)
+        return self.total_ABCD_mtx_evaluated_reshaped
+
+        # now we can convert to S parameters using the helper function I already have
+    def evaluate_Smtx(self, L_arr, Jpa_arr, omega_arr):
+
+        return ABCD_to_S(self.evaluate_ABCD_mtx(L_arr, Jpa_arr, omega_arr), 50, num = True)
+
+    def compare_ABCD_to_ideal(self, analytical_net):
+        '''
+        compares the ABCD matrix of the simulated network to the ideal ABCD matrix of the filter circuit as computed from the network_synthesis module
+        :param analytical_net:
+        :return:
+        '''
+        pass
+
+    def find_p2_input_impedance(self, L_arr, omega_arr, Z0 = 50):
+        '''
+        returns the impedance seen from the inverter
+        (as converted from the ABCD matrix)
+        '''
+        ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, [0], omega_arr, active = False)
+        self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, 50, num=True)
+        Z = self.filterZmtxs
+        #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
+        #impedance matrix and the source impedance
+        port2_input_impedance = Z[2,2]-Z[2,1]*Z[1,2]/(Z[1,1]+Z0)
+
+        return port2_input_impedance
+
+    def find_p1_input_impedance(self, L_arr, omega_arr, Zl = 50):
+        '''
+        returns the impedance seen from the environment
+        (as converted from the ABCD matrix)
+        '''
+        ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, [0], omega_arr, active = False)
+        self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, 50, num=True)
+        Z = self.filterZmtxs
+        #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
+        #impedance matrix and the source impedance
+        port1_input_impedance = Z[1,1]-Z[2,1]*Z[1,2]/(Z[2,2]+Zl)
+
+        return port1_input_impedance
+
+    def find_modes_from_input_impedance(self, L_arr, omega_arr, Z0 = 50):
+        '''
+        returns the modes as a function of the inductance of the array inductor, as well as
+        the real part of the impedance at the root and the slope of the imaginary part at the root
+        '''
+
+        p2_input_impedance = self.find_p2_input_impedance(L_arr, omega_arr, Z0 = Z0)
+        #for each inductance, we need to find a list of zeroes of the imaginary part of the admittance in some frequency range
+        p2_input_admittance = 1/p2_input_impedance
+        omega_step = omega_arr[1]-omega_arr[0]
+        #now build an interpolation function for both real and the imaginary part of the admittance
+        [re_f, im_f, im_fp] = [sp.interpolate.interp1d(omega_arr, np.real(p2_input_admittance), kind = 'cubic'),
+                               sp.interpolate.interp1d(omega_arr, np.imag(p2_input_admittance), kind = 'cubic'),
+                               sp.interpolate.interp1d(omega_arr, np.imag(np.diff(p2_input_admittance)/omega_step), kind = 'cubic')]
+        #we have to find our initial guesses, which I will get from the number of flips of the sign of the imaginary part of the admittance
+        #this is a bit of a hack, but it should work
+        #first, find the sign of the imaginary part of the admittance
+        sign = np.sign(np.imag(p2_input_admittance))
+        #now find the number of sign flips
+        sign_flips = np.diff(sign)
+        #now find the indices of the sign flips
+        sign_flip_indices = np.where(sign_flips != 0)[0]
+        #now find the frequencies at which the sign flips
+        sign_flip_freqs = omega_arr[sign_flip_indices]
+        roots = np.empty(sign_flips.size)
+        reY_at_roots = np.empty(sign_flips.size)
+        imYp_at_roots = np.empty(sign_flips.size)
+        for i, flip_freq in enumerate(sign_flip_freqs):
+            print("Debug: sign flip at", flip_freq)
+            root, _ = sp.optimize.newton(im_f, flip_freq)
+            roots[i] = root
+            reY_at_roots[i] = re_f(root)
+            imYp_at_roots[i] = im_fp(root)
+
+        return roots, reY_at_roots, imYp_at_roots
 
 
