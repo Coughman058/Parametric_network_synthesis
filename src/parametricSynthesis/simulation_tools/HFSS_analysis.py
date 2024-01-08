@@ -185,7 +185,7 @@ class interpolated_network_with_inverter_from_filename:
         (as converted from the ABCD matrix)
         '''
         ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, np.array([0]), omega_arr, active = False)
-        self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, 50, num=True)
+        self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, num=True)
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
         #impedance matrix and the source impedance
