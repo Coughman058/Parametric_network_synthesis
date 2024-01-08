@@ -148,7 +148,8 @@ class interpolated_network_with_inverter_from_filename:
                     mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
                 ), self.s2p_net_ABCD_mtx_idler)
         else:
-            signal_inductor_ABCD_array = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],self.signal_inductor.ABCD_shunt())(omega_arr, L_arr)
+            signal_inductor_ABCD_array = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
+                                                     self.signal_inductor.ABCDshunt())(omega_arr, L_arr)
             print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
             total_ABCD_mtx_evaluated = np.matmul(
                 signal_inductor_ABCD_array,
