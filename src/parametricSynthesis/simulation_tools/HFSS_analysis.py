@@ -207,13 +207,13 @@ class interpolated_network_with_inverter_from_filename:
 
         return port1_input_impedance
 
-    def find_modes_from_input_impedance(self, L_arr, omega_arr, Z0 = 50):
+    def find_modes_from_input_impedance(self, Lval, omega_arr, Z0 = 50):
         '''
         returns the modes as a function of the inductance of the array inductor, as well as
         the real part of the impedance at the root and the slope of the imaginary part at the root
         '''
 
-        p2_input_impedance = self.find_p2_input_impedance(L_arr, omega_arr, Z0 = Z0)
+        p2_input_impedance = self.find_p2_input_impedance(Lval*np.ones_like(omega_arr), omega_arr, Z0 = Z0)
         #for each inductance, we need to find a list of zeroes of the imaginary part of the admittance in some frequency range
         p2_input_admittance = 1/p2_input_impedance
         omega_step = omega_arr[1]-omega_arr[0]
@@ -243,4 +243,11 @@ class interpolated_network_with_inverter_from_filename:
 
         return roots, reY_at_roots, imYp_at_roots
 
+    def modes_as_function_of_inductance(self, L_arr, omega_arr, Z0=50):
+        roots, reY_at_roots, imYp_at_roots = [], [], []
+        for Lval in L_arr:
+            res = self.find_modes_from_input_impedance(Lval, omega_arr, Z0 = Z0)
+            roots.append(res[0])
+            reY_at_roots.append(res[1])
+            imYp_at_roots.append(res[2])
 
