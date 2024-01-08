@@ -63,14 +63,22 @@ def mirror_interpolated_function(f):
         return res
     return f_mirrored
 
+def sum_real_and_imag(freal, fimag):
+    '''
+    takes in two functions that return real and imaginary parts of a complex function, and returns a function that returns the
+    complex function
+    :param freal:
+    :param fimag:
+    :return:
+    '''
+    def fcomplex(x):
+        return freal(x) + 1j*fimag(x)
+    return fcomplex
 
 def interpolate_mirrored_ABCD_functions(skrf_network, omega):
-  res = np.zeros((2,2,omega.size), dtype = 'complex')
-  for i in range(2):
-    for j in range(2):
-      res[i,j] = mirror_interpolated_function(
-          interp1d(skrf_network.f, skrf_network.a[:,i,j])
-      )(omega/2/np.pi)
+  res = mirror_interpolated_function(
+      sum_real_and_imag(interp1d(skrf_network.f, skrf_network.a.real, axis = -1), interp1d(skrf_network.f, skrf_network.a.imag, axis = -1))
+  )(omega/2/np.pi)
   return res
 
 
