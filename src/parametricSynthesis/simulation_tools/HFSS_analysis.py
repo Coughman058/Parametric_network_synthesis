@@ -119,8 +119,13 @@ class interpolated_network_with_inverter_from_filename:
                                              self.inverter_ABCD)
         #because lambdify only knows how to lambdify matrices that contain variables in every element, we need to arbitrarily multiply it by something then input all ones into that variable
         size_match_variable = sp.symbols("nnnnnnnnnnn")
-        self.ind_ABCD_mtx_func_ = sp.lambdify([self.signal_inductor.symbol, self.inverter.omega1, size_match_variable], self.signal_inductor.ABCDshunt()*size_match_variable)
-        self.ind_ABCD_mtx_func = lambda L_arr, omega_arr: self.ind_ABCD_mtx_func_(L_arr, omega_arr, np.ones_like(L_arr))
+        self.ind_ABCD_mtx_func_ = sp.lambdify(
+            [self.signal_inductor.symbol, self.inverter.omega1, size_match_variable],
+            (self.signal_inductor.ABCDshunt()+sp.Matrix([[0,1],[0,0]]))*size_match_variable)
+        self.ind_ABCD_mtx_func_corr_ = sp.lambdify(
+            [self.signal_inductor.symbol, self.inverter.omega1, size_match_variable],
+            (sp.Matrix([[0,1],[0,0]]))*size_match_variable)
+        self.ind_ABCD_mtx_func = lambda L_arr, omega_arr: self.ind_ABCD_mtx_func_(L_arr, omega_arr, np.ones_like(L_arr))-self.ind_ABCD_mtx_func_corr(L_arr, omega_arr, np.ones_like(L_arr))
         # this will return a 2x2xN matrix of floats, with 1xN input arrays
 
         self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
