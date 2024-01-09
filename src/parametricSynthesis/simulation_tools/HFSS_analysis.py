@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import sympy as sp
 import skrf as rf
 from scipy.interpolate import interp1d
+from scipy.optimize import newton
 from ..network_tools.component_ABCD import DegenerateParametricInverter_Amp, ABCD_to_S, ABCD_to_Z
 from dataclasses import dataclass
 from scipy.optimize import root_scalar
@@ -108,7 +109,20 @@ class interpolated_network_with_inverter_from_filename:
                                                          Jpa_sym = self.inv_J_sym
                                                          )
         self.signal_inductor = self.inverter.signal_inductor
+        self.signal_inductor_ABCD_func_ = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
+                                                      self.signal_inductor.ABCDshunt())
         self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
+
+    def ind_ABCD_mtx_func_(self, L, omega):
+        return
+    def ind_ABCD_mtx_func(self, L_arr, omega_arr):
+        # becuse sympy's lambdify is absolutely *shit* at broadcasting, we need to do something like this
+        res_mtx_arr = []
+        for L, omega in zip(L_arr, omega_arr):
+            res_mtx = self.signal_inductor_ABCD_func_(L, omega)
+            res_mtx_arr.append(res_mtx)
+        res_mtx_arr_np = np.array(res_mtx_arr, dtype='complex')
+        return res_mtx_arr_np
 
     def evaluate_ABCD_mtx(self, L_arr, Jpa_arr, omega_arr, active = True):
         '''
@@ -117,15 +131,7 @@ class interpolated_network_with_inverter_from_filename:
         '''
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1],
                                              self.inverter_ABCD)
-        #because lambdify only knows how to lambdify matrices that contain variables in every element, we need to arbitrarily multiply it by something then input all ones into that variable
-        size_match_variable = sp.symbols("nnnnnnnnnnn")
-        self.ind_ABCD_mtx_func_ = sp.lambdify(
-            [self.signal_inductor.symbol, self.inverter.omega1, size_match_variable],
-            (self.signal_inductor.ABCDshunt()+sp.Matrix([[0,1],[0,0]]))*size_match_variable)
-        self.ind_ABCD_mtx_func_corr_ = sp.lambdify(
-            [self.signal_inductor.symbol, self.inverter.omega1, size_match_variable],
-            (sp.Matrix([[0,1],[0,0]]))*size_match_variable)
-        self.ind_ABCD_mtx_func = lambda L_arr, omega_arr: self.ind_ABCD_mtx_func_(L_arr, omega_arr, np.ones_like(L_arr))-self.ind_ABCD_mtx_func_corr(L_arr, omega_arr, np.ones_like(L_arr))
+
         # this will return a 2x2xN matrix of floats, with 1xN input arrays
 
         self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
@@ -159,10 +165,10 @@ class interpolated_network_with_inverter_from_filename:
                 ), self.s2p_net_ABCD_mtx_idler)
         else:
             signal_inductor_ABCD_array = self.ind_ABCD_mtx_func(omega_arr, L_arr)
-            print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
+            # print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
             total_ABCD_mtx_evaluated = np.matmul(
                 self.s2p_net_ABCD_mtx_signal,
-                mv(signal_inductor_ABCD_array)
+                self.ind_ABCD_mtx_func(L_arr, omega_arr)
             )
 
         # now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
@@ -218,32 +224,33 @@ class interpolated_network_with_inverter_from_filename:
         the real part of the impedance at the root and the slope of the imaginary part at the root
         '''
 
-        p2_input_impedance = self.find_p2_input_impedance(Lval*np.ones_like(omega_arr), omega_arr, Z0 = Z0)
+        self.p2_input_impedance = self.find_p2_input_impedance(Lval*np.ones_like(omega_arr), omega_arr, Z0 = Z0)
         #for each inductance, we need to find a list of zeroes of the imaginary part of the admittance in some frequency range
-        p2_input_admittance = 1/p2_input_impedance
+        self.p2_input_admittance = 1/self.p2_input_impedance
         omega_step = omega_arr[1]-omega_arr[0]
         #now build an interpolation function for both real and the imaginary part of the admittance
-        re_f = interp1d(omega_arr, np.real(p2_input_admittance), kind = 'cubic')
-        im_f = interp1d(omega_arr, np.imag(p2_input_admittance), kind = 'cubic')
-        im_fp =  interp1d(omega_arr, np.imag(np.diff(p2_input_admittance)/omega_step), kind = 'cubic')
+        re_f = interp1d(omega_arr, np.real(self.p2_input_admittance), kind = 'cubic')
+        im_f = interp1d(omega_arr, np.imag(self.p2_input_admittance), kind = 'cubic')
+        im_fp = interp1d(omega_arr, np.imag(np.gradient(self.p2_input_admittance)/omega_step), kind = 'cubic')
 
         #we have to find our initial guesses, which I will get from the number of flips of the sign of the imaginary part of the admittance
         #this is a bit of a hack, but it should work
         #first, find the sign of the imaginary part of the admittance
-        sign = np.sign(np.imag(p2_input_admittance))
+        sign = np.sign(np.imag(self.p2_input_admittance))
         #now find the number of sign flips
         sign_flips = np.diff(sign)
         #now find the indices of the sign flips
         sign_flip_indices = np.where(sign_flips != 0)[0]
         #now find the frequencies at which the sign flips
         sign_flip_freqs = omega_arr[sign_flip_indices]
-        roots = np.empty(sign_flips.size)
-        reY_at_roots = np.empty(sign_flips.size)
-        imYp_at_roots = np.empty(sign_flips.size)
+        roots = np.empty(sign_flip_freqs.size)
+        reY_at_roots = np.empty(sign_flip_freqs.size)
+        imYp_at_roots = np.empty(sign_flip_freqs.size)
         for i, flip_freq in enumerate(sign_flip_freqs):
-            print("Debug: sign flip at", flip_freq)
-            root, _ = sp.optimize.newton(im_f, flip_freq)
+            print("Debug: sign flip at", flip_freq/2/np.pi/1e9, " GHz")
+            root = newton(im_f, flip_freq, maxiter = 1000)
             roots[i] = root
+            print('Debug: Root at ',i, root/2/np.pi/1e9, " GHz")
             reY_at_roots[i] = re_f(root)
             imYp_at_roots[i] = im_fp(root)
 
@@ -252,8 +259,9 @@ class interpolated_network_with_inverter_from_filename:
     def modes_as_function_of_inductance(self, L_arr, omega_arr, Z0=50):
         roots, reY_at_roots, imYp_at_roots = [], [], []
         for Lval in L_arr:
+            print("Inductance value: ", Lval*1e12, " pH")
             res = self.find_modes_from_input_impedance(Lval, omega_arr, Z0 = Z0)
             roots.append(res[0])
             reY_at_roots.append(res[1])
             imYp_at_roots.append(res[2])
-
+        return np.array(roots), np.array(reY_at_roots), np.array(imYp_at_roots)
