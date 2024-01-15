@@ -218,7 +218,7 @@ class interpolated_network_with_inverter_from_filename:
 
         return port1_input_impedance
 
-    def find_modes_from_input_impedance(self, Lval, omega_arr, Z0 = 50):
+    def find_modes_from_input_impedance(self, Lval, omega_arr, Z0 = 50, debug = False):
         '''
         returns the modes as a function of the inductance of the array inductor, as well as
         the real part of the impedance at the root and the slope of the imaginary part at the root
@@ -247,10 +247,10 @@ class interpolated_network_with_inverter_from_filename:
         reY_at_roots = np.empty(sign_flip_freqs.size)
         imYp_at_roots = np.empty(sign_flip_freqs.size)
         for i, flip_freq in enumerate(sign_flip_freqs):
-            print("Debug: sign flip at", flip_freq/2/np.pi/1e9, " GHz")
+            if debug: print("Debug: sign flip at", flip_freq/2/np.pi/1e9, " GHz")
             root = newton(im_f, flip_freq, maxiter = 1000)
             roots[i] = root
-            print('Debug: Root at ',i, root/2/np.pi/1e9, " GHz")
+            if debug: print('Debug: Root at ',i, root/2/np.pi/1e9, " GHz")
             reY_at_roots[i] = re_f(root)
             imYp_at_roots[i] = im_fp(root)
 
