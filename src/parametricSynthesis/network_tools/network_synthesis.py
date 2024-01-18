@@ -531,7 +531,7 @@ class network:
         self.net_subs += self.inverter_no_detuning_subs(omega) + additional_net_subs
         self.plot_ABCD_mtxs = [ABCD.subs(self.net_subs) for ABCD in self.ABCD_mtxs]
         if debug: print('Calculating symbolic scattering matrix...')
-        Smtx = self.calculate_Smtx(self.Z0)
+        # Smtx = self.calculate_Smtx(self.Z0)
         if debug: print('Calculating numerical scattering matrix...')
         SmtxN = ABCD_to_S(compress_ABCD_array(self.plot_ABCD_mtxs), 50)
         if debug: print('plotting results...')
@@ -590,39 +590,7 @@ class network:
                         )
         return fig
 
-    def compressed_active_ABCD_array(self, debug=True, method='pumped_mutual'):
-        '''
-        This function is deigned to compress the ABCD matrices of the signal and
-        idler sides of the network without touching the inverter
-        so that other analysis can be easier
-        '''
-        LHS_ABCD = sp.eye(2)
-        net_size = len(self.ABCD_mtxs)
-        if method.lower() == 'pumped_mutual':
-            for i, ABCD in enumerate(self.ABCD_mtxs[0:net_size // 2]):
-                if debug: print("LHS step ", i)
-                LHS_ABCD *= ABCD
-                LHS_ABCD = sp.simplify(LHS_ABCD)
 
-            self.ABCD_mtxs.reverse()
-
-            RHS_ABCD = sp.eye(2)
-            for i, ABCD in enumerate(self.ABCD_mtxs[0:net_size // 2]):
-                if debug: print("RHS step ", i)
-                RHS_ABCD *= ABCD
-                RHS_ABCD = sp.simplify(RHS_ABCD)
-
-            self.ABCD_mtxs.reverse()
-
-            return [LHS_ABCD, self.ABCD_mtxs[net_size // 2], RHS_ABCD]
-
-        if method.lower() == 'pumpistor':
-            for i, ABCD in enumerate(self.ABCD_mtxs):
-                if debug: print("LHS step ", i)
-                LHS_ABCD *= ABCD
-                LHS_ABCD = sp.simplify(LHS_ABCD)
-
-                return [LHS_ABCD, self.ABCD_mtxs[net_size - 1]]
 
     def total_ABCD(self):
         '''
@@ -632,3 +600,44 @@ class network:
         to scattering matrices
         '''
         return compress_ABCD_array(self.ABCD_mtxs)
+
+    def evaluate_passive_ABCD_mtx_num(self):
+        '''
+        This function evaluates the ABCD matrices numerically
+        '''
+        self.ABCD_mtx_func = self.ABCD.subs(self.net_subs) for ABCD in self.ABCD_mtxs]
+        return self.ABCD_mtxs_num
+
+    # def compressed_active_ABCD_array(self, debug=True, method='pumped_mutual'):
+    #     '''
+    #     This function is deigned to compress the ABCD matrices of the signal and
+    #     idler sides of the network without touching the inverter
+    #     so that other analysis can be easier
+    #     '''
+    #     LHS_ABCD = sp.eye(2)
+    #     net_size = len(self.ABCD_mtxs)
+    #     if method.lower() == 'pumped_mutual':
+    #         for i, ABCD in enumerate(self.ABCD_mtxs[0:net_size // 2]):
+    #             if debug: print("LHS step ", i)
+    #             LHS_ABCD *= ABCD
+    #             LHS_ABCD = sp.simplify(LHS_ABCD)
+    #
+    #         self.ABCD_mtxs.reverse()
+    #
+    #         RHS_ABCD = sp.eye(2)
+    #         for i, ABCD in enumerate(self.ABCD_mtxs[0:net_size // 2]):
+    #             if debug: print("RHS step ", i)
+    #             RHS_ABCD *= ABCD
+    #             RHS_ABCD = sp.simplify(RHS_ABCD)
+    #
+    #         self.ABCD_mtxs.reverse()
+    #
+    #         return [LHS_ABCD, self.ABCD_mtxs[net_size // 2], RHS_ABCD]
+    #
+    #     if method.lower() == 'pumpistor':
+    #         for i, ABCD in enumerate(self.ABCD_mtxs):
+    #             if debug: print("LHS step ", i)
+    #             LHS_ABCD *= ABCD
+    #             LHS_ABCD = sp.simplify(LHS_ABCD)
+    #
+    #             return [LHS_ABCD, self.ABCD_mtxs[net_size - 1]]

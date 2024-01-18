@@ -90,7 +90,7 @@ omega0_val: float
 @dataclass
 class interpolated_network_with_inverter_from_filename:
     '''
-    takes in an s
+    This file takes in an s2p file from HFSS and analyzes the results by finding modes and computing nonlinearities
     '''
     filename: str
     L_sym: sp.Symbol
@@ -113,8 +113,6 @@ class interpolated_network_with_inverter_from_filename:
                                                       self.signal_inductor.ABCDshunt())
         self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
 
-    def ind_ABCD_mtx_func_(self, L, omega):
-        return
     def ind_ABCD_mtx_func(self, L_arr, omega_arr):
         # becuse sympy's lambdify is absolutely *shit* at broadcasting, we need to do something like this
         res_mtx_arr = []
@@ -257,6 +255,11 @@ class interpolated_network_with_inverter_from_filename:
         return roots, reY_at_roots, imYp_at_roots
 
     def modes_as_function_of_inductance(self, L_arr, omega_arr, Z0=50):
+        '''
+        returns the modes as a function of the inductance of the array inductor. In the format
+        mode omega, real part of admittance at root, slope of imaginary part of admittance at root, phi_zpf at root
+        '''
+
         roots, reY_at_roots, imYp_at_roots = [], [], []
         for Lval in L_arr:
             print("Inductance value: ", Lval*1e12, " pH")
@@ -264,4 +267,6 @@ class interpolated_network_with_inverter_from_filename:
             roots.append(res[0])
             reY_at_roots.append(res[1])
             imYp_at_roots.append(res[2])
-        return np.array(roots), np.array(reY_at_roots), np.array(imYp_at_roots)
+        return np.array(roots), np.array(reY_at_roots), np.array(imYp_at_roots), 1/(np.array(roots)*np.array(imYp_at_roots))
+
+
