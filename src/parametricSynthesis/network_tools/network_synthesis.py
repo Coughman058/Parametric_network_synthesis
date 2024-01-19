@@ -601,12 +601,12 @@ class network:
         '''
         return compress_ABCD_array(self.ABCD_mtxs)
 
-    def evaluate_passive_ABCD_mtx_num(self):
-        '''
-        This function evaluates the ABCD matrices numerically
-        '''
-        self.ABCD_mtx_func = self.ABCD.subs(self.net_subs) for ABCD in self.ABCD_mtxs]
-        return self.ABCD_mtxs_num
+    # def evaluate_passive_ABCD_mtx_num(self):
+    #     '''
+    #     This function evaluates the ABCD matrices numerically
+    #     '''
+    #     self.ABCD_mtx_func = self.ABCD.subs(self.net_subs) for ABCD in self.ABCD_mtxs]
+    #     return self.ABCD_mtxs_num
 
     # def compressed_active_ABCD_array(self, debug=True, method='pumped_mutual'):
     #     '''
