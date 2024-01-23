@@ -635,7 +635,8 @@ class network:
         '''
         #find out where the hell the inverter is. It could be just about anywhere depending on the network topology
         inverter_index = [(i, el) for (i, el) in enumerate(self.net_elements) if type(el) == DegenerateParametricInverter_Amp][0][0]
-
+        print("last ABCD matrix (not included in compression")
+        print(self.ABCD_mtxs[inverter_index])
         if array:
             return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index])
         else:
