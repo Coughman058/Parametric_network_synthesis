@@ -496,11 +496,11 @@ class network:
                     if n == 0:
                         self.circuit_unit(Ftype, n, net_size, idler_omega_sym, include_inductor=core_inductor,
                                           tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                          use_approx=use_approx, conjugate = True)
+                                          use_approx=use_approx, conjugate = False)
                     else:
                         self.circuit_unit(Ftype, n, net_size, idler_omega_sym, include_inductor=True,
                                           tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                          use_approx=use_approx, conjugate = True)
+                                          use_approx=use_approx, conjugate = False)
 
                 [l.reverse() for l in [self.net_elements, self.ABCD_mtxs]]
 
