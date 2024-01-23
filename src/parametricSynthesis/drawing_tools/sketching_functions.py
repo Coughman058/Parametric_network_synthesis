@@ -34,7 +34,7 @@ def sketch_TLINE_cpld_lumped(net, l = 1.5):
     d += elm.RBox(label="$Z_0$").up()
     net_size = net.J.size-1
     for n in range(net_size+1):
-      d += elm.Coax(label = f"$\lambda/4$\n$Z_c$ = {np.round(1/net.J[net_size-n], 1)} $\Omega$").scale(1).right()
+      d += elm.Coax(label = f"$\lambda/4$\n$Z_c$ = {np.round(1/net.J[net_size-n]*net.tline_inv_Z_corr_factor, 1)} $\Omega$").scale(1).right()
       d.push()
       d += elm.Inductor2().down().label(f"$L =$ {np.round(net.L[net_size-n]*1e12, 1)} pH", loc = 'bottom')
       d += elm.Line().right().length(l/2)
@@ -54,7 +54,7 @@ def sketch_cap_cpld_lumped(net, l = 1.5):
     d += elm.RBox(label="$Z_0$").up()
     net_size = net.J.size-1
     for n in range(net_size+1):
-      d += elm.Capacitor(label = f"C = {np.round(net.CC[net_size-n]*1e12, 3)} pF").scale(1).right()
+      d += elm.Capacitor(label = f"C = {np.round(net.CC[net_size-n]*1e12*net.tline_inv_Z_corr_factor, 3)} pF").scale(1).right()
       d.push()
       d += elm.Inductor2().down().label(f"$L =$ {np.round(net.L[net_size-n]*1e12, 1)} pH", loc = 'bottom')
       d += elm.Line().right().length(l/2)

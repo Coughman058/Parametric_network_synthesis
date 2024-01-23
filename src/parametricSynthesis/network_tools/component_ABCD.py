@@ -42,7 +42,7 @@ def abcd_to_z(abcd: Union[sp.Matrix, np.array], num=False):
              [1 / C, D / C]]
         )
     else:
-        Smtx = sp.Matrix(
+        Zmtx = sp.Matrix(
             [[A / C, (A * D - B * C) / C],
              [1 / C, D / C]]
         )

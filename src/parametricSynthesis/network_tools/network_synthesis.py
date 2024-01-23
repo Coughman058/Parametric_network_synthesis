@@ -277,7 +277,7 @@ class Network:
         self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
         self.net_subs.insert(0, (tline_omega0_symbol, tline_omega0_val))
 
-    def cap_cpld_lumped_unit(self, n, net_size, omega_sym, include_inductor=True, conjugate=False):
+    def cap_cpld_lumped_unit(self, n, net_size, omega_sym, include_inductor=True, conjugate=False, inv_corr_factor = 1):
         """
         Adds a lumped element resonator and a coupling capacitor in series to the network
         :param n: same as in lumped_res
@@ -293,7 +293,7 @@ class Network:
         # coupler
         if n != net_size:  # all these have eliminated port inverters
             cpl_symbol = sp.symbols(f'Cc_{n}', positive=True)
-            cpl_val = self.CC[n]
+            cpl_val = self.CC[n]*inv_corr_factor
             cpl_el = Capacitor(omega_sym, cpl_symbol, cpl_val)
             self.net_elements.insert(0, cpl_el)
             self.net_subs.insert(0, (cpl_symbol, cpl_val))
@@ -404,7 +404,7 @@ class Network:
 
         if Ftype == 'cap_cpld_lumped':
             self.cap_cpld_lumped_unit(n, net_size, omega_sym,
-                                      include_inductor=include_inductor, conjugate=conjugate)
+                                      include_inductor=include_inductor, conjugate=conjugate, inv_corr_factor = tline_inv_Z_corr_factor)
         elif Ftype == 'tline_cpld_lumped' or n == 0:
             self.tline_cpld_lumped_unit(
                 n, net_size, omega_sym,
