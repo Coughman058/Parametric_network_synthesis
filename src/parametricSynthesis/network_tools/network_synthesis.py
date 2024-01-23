@@ -672,8 +672,9 @@ class network:
         This function converts an analytical impedance to an interpolated impedance by lambdifying the analytical
         impedance as a function of the array inductance and frequency
         '''
-        Z_with_subs = analytical_impedance.subs(self.net_subs)
-        Z_func = sp.lambdify((self.omega_from_inverter, self.inv_el.signal_inductor.symbol), Z_with_subs)
+        Lvary = sp.symbols("L_v")
+        Z_with_subs = analytical_impedance.subs(self.inv_el.signal_inductor.symbol, Lvary).subs(self.net_subs)
+        Z_func = sp.lambdify((self.omega_from_inverter, Lvary), Z_with_subs)
         #this should return a 1xN array of values of the total complex input impedance
         return Z_func
 
@@ -685,7 +686,9 @@ class network:
         '''
 
         res_list = []
-        impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(self.passive_impedance_seen_from_inverter())
+        impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(
+            self.passive_impedance_seen_from_inverter()
+        )
         for Lval in L_arr:
             print("Inductance value: ", Lval * 1e12, " pH")
             Z_arr = impedance_function(omega_arr, Lval * np.ones_like(omega_arr))
