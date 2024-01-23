@@ -3,6 +3,7 @@ from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
 # from tensorwaves.function.sympy import fast_lambdify
+from ..simulation_tools.Quantizer import find_modes_from_input_impedance
 
 def get_active_network_prototypes():
     """
@@ -666,51 +667,28 @@ class network:
         return Z[1, 1]-Z[0, 1]*Z[1, 0]/(Z[0, 0]+self.Z0)
 
 
-    # def passive_impedance_seen_from_inverter(self):
-    #     '''
-    #     This function calculates the impedance seen from the input port
-    #     of the network, and includes the array inductance
-    #     '''
-    #     ABCD = self.total_ABCD()
-    #     return ABCD[0, 1] / ABCD[1, 1]
+    def analytical_impedance_to_numerical_impedance_from_array_inductance(self, analytical_impedance):
+        '''
+        This function converts an analytical impedance to an interpolated impedance by lambdifying the analytical
+        impedance as a function of the array inductance and frequency
+        '''
+        Z_with_subs = analytical_impedance.subs(self.net_subs)
+        Z_func = sp.lambdify((self.omega_from_inverter, self.inv_el.signal_inductor.symbol), Z_with_subs)
+        #this should return a 1xN array of values of the total complex input impedance
+        return Z_func
 
-    # def evaluate_passive_ABCD_mtx_num(self):
-    #     '''
-    #     This function evaluates the ABCD matrices numerically
-    #     '''
-    #     self.ABCD_mtx_func = self.ABCD.subs(self.net_subs) for ABCD in self.ABCD_mtxs]
-    #     return self.ABCD_mtxs_num
+    def modes_as_function_of_inductance(self, L_arr, omega_arr, Z0=50):
+        '''
+        Takes in an array of inductance values and frequencies
+        returns the modes as a function of the inductance of the array inductor. In the format
+        of the return of find_modes_from_input_impedance
+        '''
 
-    # def compressed_active_ABCD_array(self, debug=True, method='pumped_mutual'):
-    #     '''
-    #     This function is deigned to compress the ABCD matrices of the signal and
-    #     idler sides of the network without touching the inverter
-    #     so that other analysis can be easier
-    #     '''
-    #     LHS_ABCD = sp.eye(2)
-    #     net_size = len(self.ABCD_mtxs)
-    #     if method.lower() == 'pumped_mutual':
-    #         for i, ABCD in enumerate(self.ABCD_mtxs[0:net_size // 2]):
-    #             if debug: print("LHS step ", i)
-    #             LHS_ABCD *= ABCD
-    #             LHS_ABCD = sp.simplify(LHS_ABCD)
-    #
-    #         self.ABCD_mtxs.reverse()
-    #
-    #         RHS_ABCD = sp.eye(2)
-    #         for i, ABCD in enumerate(self.ABCD_mtxs[0:net_size // 2]):
-    #             if debug: print("RHS step ", i)
-    #             RHS_ABCD *= ABCD
-    #             RHS_ABCD = sp.simplify(RHS_ABCD)
-    #
-    #         self.ABCD_mtxs.reverse()
-    #
-    #         return [LHS_ABCD, self.ABCD_mtxs[net_size // 2], RHS_ABCD]
-    #
-    #     if method.lower() == 'pumpistor':
-    #         for i, ABCD in enumerate(self.ABCD_mtxs):
-    #             if debug: print("LHS step ", i)
-    #             LHS_ABCD *= ABCD
-    #             LHS_ABCD = sp.simplify(LHS_ABCD)
-    #
-    #             return [LHS_ABCD, self.ABCD_mtxs[net_size - 1]]
+        res_list = []
+        impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(self.passive_impedance_seen_from_inverter())
+        for Lval in L_arr:
+            print("Inductance value: ", Lval * 1e12, " pH")
+            Z_arr = impedance_function(omega_arr, L_val * np.ones_like(f_arr))
+            res = find_modes_from_input_impedance(Z_arr, Lval, omega_arr, Z0=Z0)
+            res_list.append(res)
+        return res_list

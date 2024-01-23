@@ -30,36 +30,6 @@ def import_s2p(filename):
   '''
   return rf.Network(filename)
 
-#below function is not needed because the skrf network object handles it already
-# def index_to_abcd(i, j, skrf_network):
-#     '''
-#     converts a pair of indices to the corresponding ABCD parameter in an skrf network object
-#     :param i:
-#     :param j:
-#     :return: correct ABCD method from skrf network object
-#     '''
-#     if i == 0 and j == 0:
-#         return skrf_network.a
-#     elif i == 0 and j == 1:
-#         return skrf_network.b
-#     elif i == 1 and j == 0:
-#         return skrf_network.c
-#     elif i == 1 and j == 1:
-#         return skrf_network.d
-#     else:
-#         raise ValueError('invalid index')
-
-def sum_real_and_imag(freal, fimag):
-    '''
-    takes in two functions that return real and imaginary parts of a complex function, and returns a function that returns the
-    complex function
-    :param freal:
-    :param fimag:
-    :return:
-    '''
-    def fcomplex(x):
-        return freal(x) + 1j*fimag(x)
-    return fcomplex
 
 def interpolate_mirrored_ABCD_functions(skrf_network, omega):
     #first take the skrf_network and extend the frequency range to negative frequencies, conjugating the ABCD matrix at negative frequencies
@@ -71,22 +41,6 @@ def interpolate_mirrored_ABCD_functions(skrf_network, omega):
     return res
 
 
-# def evaluate_net_ABCD_functions(f_arr, interpolated_mirrored_ABCD_functions):
-#   '''
-#   takes in an array of frequencies and returns a matrix of the evaluated ABCD parameters of the network in a 2x2xN shape
-#   '''
-#   return np.array([[interpolated_mirrored_ABCD_functions[0,0](f_arr), interpolated_mirrored_ABCD_functions[0,1](f_arr)],
-#                    [interpolated_mirrored_ABCD_functions[1,0](f_arr), interpolated_mirrored_ABCD_functions[1,1](f_arr)]])
-
-'''
-omega0_val: float
-  omega1: sp.Symbol
-  omega2: sp.Symbol
-  L: sp.Symbol
-  R_active: sp.Symbol
-  Jpa_sym: sp.Symbol
-  dw: float
-'''
 @dataclass
 class interpolated_network_with_inverter_from_filename:
     '''
@@ -122,11 +76,15 @@ class interpolated_network_with_inverter_from_filename:
         res_mtx_arr_np = np.array(res_mtx_arr, dtype='complex')
         return res_mtx_arr_np
 
-    def evaluate_ABCD_mtx(self, L_arr, Jpa_arr, omega_arr, active = True):
+    def evaluate_ABCD_mtx(self, L_val, Jpa_val, omega_arr, active = True):
         '''
-        returns the S matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
-        This can only handle variation over frequency! The inductance and coupling rate must be constant but match the length of the frequency array
+        returns the ABCD matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
+        This can only handle variation over frequency! The inductance and coupling rate must be a single constant
         '''
+        if np.size(L_val) > 1 or np.size(J_val) > 1:
+            raise Exception("Improper variation in ABCD mtx eval, use only one inductance at a time")
+        L_arr = L_val*np.ones_like(omega_arr)
+        Jpa_arr = Jpa_val*np.ones_like(omega_arr)
         self.inv_ABCD_mtx_func = sp.lambdify([self.inverter.L, self.inverter.Jpa_sym, self.inverter.omega1],
                                              self.inverter_ABCD)
 
@@ -176,9 +134,9 @@ class interpolated_network_with_inverter_from_filename:
         return self.total_ABCD_mtx_evaluated_reshaped
 
         # now we can convert to S parameters using the helper function I already have
-    def evaluate_Smtx(self, L_arr, Jpa_arr, omega_arr):
+    def evaluate_Smtx(self, L_val, Jpa_val, omega_arr):
 
-        return ABCD_to_S(self.evaluate_ABCD_mtx(L_arr, Jpa_arr, omega_arr), 50, num = True)
+        return ABCD_to_S(self.evaluate_ABCD_mtx(L_val, Jpa_val, omega_arr), 50, num = True)
 
     def compare_ABCD_to_ideal(self, analytical_net):
         '''
@@ -188,12 +146,12 @@ class interpolated_network_with_inverter_from_filename:
         '''
         pass
 
-    def find_p2_input_impedance(self, L_arr, omega_arr, Z0 = 50):
+    def find_p2_input_impedance(self, L_val, omega_arr, Z0 = 50):
         '''
         returns the impedance seen from the inverter
         (as converted from the ABCD matrix)
         '''
-        ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, np.array([0]), omega_arr, active = False)
+        ABCD_mtxs = self.evaluate_ABCD_mtx(L_val, 0, omega_arr, active = False)
         self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, num=True)
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
@@ -202,12 +160,12 @@ class interpolated_network_with_inverter_from_filename:
 
         return port2_input_impedance
 
-    def find_p1_input_impedance(self, L_arr, omega_arr, Zl = 50):
+    def find_p1_input_impedance(self, L_val, omega_arr, Zl = 50):
         '''
         returns the impedance seen from the environment
         (as converted from the ABCD matrix)
         '''
-        ABCD_mtxs = self.evaluate_ABCD_mtx(L_arr, [0], omega_arr, active = False)
+        ABCD_mtxs = self.evaluate_ABCD_mtx(L_val, 0, omega_arr, active = False)
         self.filterZmtxs = ABCD_to_Z(ABCD_mtxs,  num=True)
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
@@ -216,57 +174,6 @@ class interpolated_network_with_inverter_from_filename:
 
         return port1_input_impedance
 
-    def find_modes_from_input_impedance(self, Lval, omega_arr, Z0 = 50, debug = False):
-        '''
-        returns the modes as a function of the inductance of the array inductor, as well as
-        the real part of the impedance at the root and the slope of the imaginary part at the root
-        '''
 
-        self.p2_input_impedance = self.find_p2_input_impedance(Lval*np.ones_like(omega_arr), omega_arr, Z0 = Z0)
-        #for each inductance, we need to find a list of zeroes of the imaginary part of the admittance in some frequency range
-        self.p2_input_admittance = 1/self.p2_input_impedance
-        omega_step = omega_arr[1]-omega_arr[0]
-        #now build an interpolation function for both real and the imaginary part of the admittance
-        re_f = interp1d(omega_arr, np.real(self.p2_input_admittance), kind = 'cubic')
-        im_f = interp1d(omega_arr, np.imag(self.p2_input_admittance), kind = 'cubic')
-        im_fp = interp1d(omega_arr, np.imag(np.gradient(self.p2_input_admittance)/omega_step), kind = 'cubic')
-
-        #we have to find our initial guesses, which I will get from the number of flips of the sign of the imaginary part of the admittance
-        #this is a bit of a hack, but it should work
-        #first, find the sign of the imaginary part of the admittance
-        sign = np.sign(np.imag(self.p2_input_admittance))
-        #now find the number of sign flips
-        sign_flips = np.diff(sign)
-        #now find the indices of the sign flips
-        sign_flip_indices = np.where(sign_flips != 0)[0]
-        #now find the frequencies at which the sign flips
-        sign_flip_freqs = omega_arr[sign_flip_indices]
-        roots = np.empty(sign_flip_freqs.size)
-        reY_at_roots = np.empty(sign_flip_freqs.size)
-        imYp_at_roots = np.empty(sign_flip_freqs.size)
-        for i, flip_freq in enumerate(sign_flip_freqs):
-            if debug: print("Debug: sign flip at", flip_freq/2/np.pi/1e9, " GHz")
-            root = newton(im_f, flip_freq, maxiter = 1000)
-            roots[i] = root
-            if debug: print('Debug: Root at ',i, root/2/np.pi/1e9, " GHz")
-            reY_at_roots[i] = re_f(root)
-            imYp_at_roots[i] = im_fp(root)
-
-        return roots, reY_at_roots, imYp_at_roots
-
-    def modes_as_function_of_inductance(self, L_arr, omega_arr, Z0=50):
-        '''
-        returns the modes as a function of the inductance of the array inductor. In the format
-        mode omega, real part of admittance at root, slope of imaginary part of admittance at root, phi_zpf at root
-        '''
-
-        roots, reY_at_roots, imYp_at_roots = [], [], []
-        for Lval in L_arr:
-            print("Inductance value: ", Lval*1e12, " pH")
-            res = self.find_modes_from_input_impedance(Lval, omega_arr, Z0 = Z0)
-            roots.append(res[0])
-            reY_at_roots.append(res[1])
-            imYp_at_roots.append(res[2])
-        return np.array(roots), np.array(reY_at_roots), np.array(imYp_at_roots), 1/(np.array(roots)*np.array(imYp_at_roots))
 
 
