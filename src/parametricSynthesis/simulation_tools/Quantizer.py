@@ -83,6 +83,6 @@ def mode_results_to_device_params(res):
     q = np.abs(roots) /2 * (imYp_at_roots/reY_at_roots)
     c = 1 / 2 * imYp_at_roots
     Zpeff = 1/roots/c
-    L = imYpp_at_roots**2/4/c**3
+    L = 1/(roots**2*c)
 
     return q, c, L, Zpeff
