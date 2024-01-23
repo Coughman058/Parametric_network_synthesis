@@ -19,7 +19,7 @@ def sum_real_and_imag(freal, fimag):
     return fcomplex
 
 
-def find_modes_from_input_impedance(p2_input_impedance, omega_arr, Z0 = 50, debug = False):
+def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug = False):
     '''
     returns the modes as a function of the inductance of the array inductor, as well as
     the real part of the impedance at the root and the slope of the imaginary part at the root
