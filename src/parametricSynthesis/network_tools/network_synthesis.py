@@ -487,9 +487,14 @@ class network:
                 R_active=R_active
             )
             if method == 'pumped_mutual':
-
+                self.net_elements.append(self.inv_el.signal_inductor)
                 self.net_elements.append(self.inv_el)
-                self.ABCD_mtxs.append(self.inv_el.ABCD_shunt())
+                self.net_elements.append(self.inv_el.idler_inductor)
+
+                self.ABCD_mtxs.append(self.inv_el.ABCD_signal_inductor_shunt())
+                self.ABCD_mtxs.append(self.inv_el.ABCD_inverter_shunt())
+                self.ABCD_mtxs.append(self.inv_el.ABCD_idler_inductor_shunt())
+
 
                 [l.reverse() for l in [self.net_elements, self.ABCD_mtxs]]
                 for n in range(net_size + 1):
@@ -620,33 +625,48 @@ class network:
         '''
         return compress_ABCD_array(self.ABCD_mtxs)
 
-    def total_passive_ABCD(self, array = True):
+    def total_passive_ABCD(self, array = False):
         '''
         Let's calculate the scattering parameters of the network when the JPA is
         off. This should be easy, we're just looking at the phase structure of the
         network, the ABCD matrices are all multiplied together, and then transformed
         to scattering matrices
         '''
+        #find out where the hell the inverter is. It could be just about anywhere depending on the network topology
+        inverter_index = [(i, el) for (i, el) in enumerate(net.net_elements) if type(el) == DegenerateParametricInverter_Amp][0][0]
+
         if array:
-            return compress_ABCD_array(self.ABCD_mtxs[::self.net_size])
+            return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index+1])
         else:
-            return compress_ABCD_array(self.ABCD_mtxs[::self.net_size-1])
+            return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index])
 
     def passive_impedance_seen_from_array(self):
         '''
-        This function calculates the impedance seen from the input port
-        of the network when the JPA is off
+        This function calculates the impedance seen from the array port
+        of the network, without including the array inductance
         '''
-        ABCD = self.total_ABCD()
-        return ABCD[0, 1] / ABCD[1, 1]
+        ABCD = self.total_passive_ABCD()
+        Z = ABCD_to_Z(ABCD, self.Z0)
+        return Z[2,2]-Z[1,2]*Z[2,1]/(Z[1,1]+self.Z0)
 
     def passive_impedance_seen_from_inverter(self):
         '''
-        This function calculates the impedance seen from the input port
-        of the network when the JPA is off
+        This function calculates the impedance seen from the array port
+        of the network inclding the array inductance
         '''
-        ABCD = self.total_ABCD()
-        return ABCD[0, 1] / ABCD[1, 1]
+        ABCD = self.total_passive_ABCD()
+
+        Z = ABCD_to_Z(ABCD, self.Z0)
+
+        return Z[2,2]-Z[1,2]*Z[2,1]/(Z[1,1]+self.Z0)
+
+    # def passive_impedance_seen_from_inverter(self):
+    #     '''
+    #     This function calculates the impedance seen from the input port
+    #     of the network, and includes the array inductance
+    #     '''
+    #     ABCD = self.total_ABCD()
+    #     return ABCD[0, 1] / ABCD[1, 1]
 
     # def evaluate_passive_ABCD_mtx_num(self):
     #     '''
