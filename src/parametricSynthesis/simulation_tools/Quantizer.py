@@ -42,7 +42,7 @@ def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False):
     re_f = interp1d(omega_arr, np.real(p2_input_admittance), kind='cubic')
     im_f = interp1d(omega_arr, np.imag(p2_input_admittance), kind='cubic')
     im_fp = interp1d(omega_arr, np.imag(np.gradient(p2_input_admittance) / omega_step), kind='cubic')
-
+    im_fpp = interp1d(omega_arr, np.imag(np.gradient(np.gradient(p2_input_admittance)) / omega_step**2), kind='cubic')
     # we have to find our initial guesses, which I will get from the number of flips of the sign of the imaginary part of the admittance
     # this is a bit of a hack, but it should work
     # first, find the sign of the imaginary part of the admittance
@@ -56,6 +56,7 @@ def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False):
     roots = np.empty(sign_flip_freqs.size)
     reY_at_roots = np.empty(sign_flip_freqs.size)
     imYp_at_roots = np.empty(sign_flip_freqs.size)
+    imYpp_at_roots = np.empty(sign_flip_freqs.size)
     for i, flip_freq in enumerate(sign_flip_freqs):
         if debug: print("Debug: sign flip at", flip_freq / 2 / np.pi / 1e9, " GHz")
         root = newton(im_f, flip_freq, maxiter=1000)
@@ -63,5 +64,25 @@ def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False):
         if debug: print('Debug: Root at ', i, root / 2 / np.pi / 1e9, " GHz")
         reY_at_roots[i] = re_f(root)
         imYp_at_roots[i] = im_fp(root)
+        imYpp_at_roots[i] = im_fpp(root)
 
-    return roots, reY_at_roots, imYp_at_roots
+    return roots, reY_at_roots, imYp_at_roots, imYpp_at_roots
+
+def mode_results_to_device_params(res):
+    '''
+    takes the results of the find_modes_from_input_impedance function and returns the device parameters in terms of
+    quality factor Q,
+    capacitance C,
+    inductance L,
+    and Zpeff
+    '''
+
+    # unpack the results
+    roots, reY_at_roots, imYp_at_roots, imYpp_at_roots = res
+    # now find the quality factor
+    q = np.abs(roots) /2 * (imYp_at_roots/reY_at_roots)
+    c = 1 / 2 * imYp_at_roots
+    Zpeff = 1/roots/c
+    L = imYpp_at_roots**2/4/c**3
+
+    return q, c, L, Zpeff
