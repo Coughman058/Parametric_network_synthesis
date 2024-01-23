@@ -142,7 +142,7 @@ class Network:
     beta: np.ndarray
     beta_p: float
     R_active_val: float
-    elim_imverter: bool
+    elim_inverter: bool
 
     def __post_init__(self):
         self.Ftypes = [
