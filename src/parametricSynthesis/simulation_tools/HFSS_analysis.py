@@ -9,7 +9,7 @@ import sympy as sp
 import skrf as rf
 from scipy.interpolate import interp1d
 from scipy.optimize import newton
-from ..network_tools.component_ABCD import DegenerateParametricInverter_Amp, ABCD_to_S, ABCD_to_Z
+from ..network_tools.component_ABCD import DegenerateParametricInverterAmp, abcd_to_s, abcd_to_z
 from dataclasses import dataclass
 from scipy.optimize import root_scalar
 from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_input_impedance
@@ -24,6 +24,7 @@ perspective of the signal and idler ports
 - create a function that returns the S matrix from the ABCD matrix as a function of inductance, coupling rate on the inverter, and frequency
 '''
 
+
 def import_s2p(filename):
   '''
   imports an s2p file and returns a skrf network object
@@ -31,7 +32,7 @@ def import_s2p(filename):
   return rf.Network(filename)
 
 
-def interpolate_mirrored_ABCD_functions(skrf_network, omega):
+def interpolate_mirrored_abcd_functions(skrf_network, omega):
     #first take the skrf_network and extend the frequency range to negative frequencies, conjugating the ABCD matrix at negative frequencies
     #then interpolate each ABCD parameter
     skrf_network.f_mirror = np.insert(skrf_network.f, 0, -np.flip(skrf_network.f))
@@ -42,7 +43,7 @@ def interpolate_mirrored_ABCD_functions(skrf_network, omega):
 
 
 @dataclass
-class interpolated_network_with_inverter_from_filename:
+class InterpolatedNetworkWithInverterFromFilename:
     '''
     This file takes in an s2p file from HFSS and analyzes the results by finding modes and computing nonlinearities
     '''
@@ -53,22 +54,22 @@ class interpolated_network_with_inverter_from_filename:
     dw: float
 
     def __post_init__(self):
-        omega_signal, omega_idler, R_active = sp.symbols("omega, omega_i, R")
+        omega_signal, omega_idler, r_active = sp.symbols("omega, omega_i, R")
         self.skrf_network = import_s2p(self.filename)
-        self.inverter = DegenerateParametricInverter_Amp(omega1 = omega_signal,
-                                                         omega2 = omega_idler,
-                                                         omega0_val = self.omega0_val,
-                                                         L = self.L_sym,
-                                                         R_active = R_active,
-                                                         Jpa_sym = self.inv_J_sym
-                                                         )
+        self.inverter = DegenerateParametricInverterAmp(omega1 = omega_signal,
+                                                        omega2 = omega_idler,
+                                                        omega0_val = self.omega0_val,
+                                                        L = self.L_sym,
+                                                        R_active = r_active,
+                                                        Jpa_sym = self.inv_J_sym
+                                                        )
         self.signal_inductor = self.inverter.signal_inductor
         self.signal_inductor_ABCD_func_ = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
                                                       self.signal_inductor.ABCDshunt())
-        inverter_total_ABCD = self.inverter.ABCD_signal_inductor_shunt()*self.inverter.inverter_shunt()*self.inverter.ABCD_idler_inductor_shunt()
-        self.inverter_ABCD = inverter_total_ABCD.subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
+        inverter_total_abcd = self.inverter.abcd_signal_inductor_shunt() * self.inverter.inverter_shunt() * self.inverter.abcd_idler_inductor_shunt()
+        self.inverter_ABCD = inverter_total_abcd.subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
 
-    def ind_ABCD_mtx_func(self, L_arr, omega_arr):
+    def ind_abcd_mtx_func(self, L_arr, omega_arr):
         # becuse sympy's lambdify is absolutely *shit* at broadcasting, we need to do something like this
         res_mtx_arr = []
         for L, omega in zip(L_arr, omega_arr):
@@ -77,7 +78,7 @@ class interpolated_network_with_inverter_from_filename:
         res_mtx_arr_np = np.array(res_mtx_arr, dtype='complex')
         return res_mtx_arr_np
 
-    def evaluate_ABCD_mtx(self, L_val, Jpa_val, omega_arr, active = True):
+    def evaluate_abcd_mtx(self, L_val, Jpa_val, omega_arr, active = True):
         '''
         returns the ABCD matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
         This can only handle variation over frequency! The inductance and coupling rate must be a single constant
@@ -91,8 +92,8 @@ class interpolated_network_with_inverter_from_filename:
 
         # this will return a 2x2xN matrix of floats, with 1xN input arrays
 
-        self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_ABCD_functions(self.skrf_network, omega_arr)
-        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_ABCD_functions(self.skrf_network,
+        self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_abcd_functions(self.skrf_network, omega_arr)
+        self.s2p_net_ABCD_mtx_idler = interpolate_mirrored_abcd_functions(self.skrf_network,
                                                                           omega_arr - 2 * self.omega0_val)
 
         # these will also return a Nx2x2 matrix of floats, with 1xN input
@@ -121,11 +122,11 @@ class interpolated_network_with_inverter_from_filename:
                     mv(self.inv_ABCD_mtx_func(L_arr, Jpa_arr, omega_arr))
                 ), self.s2p_net_ABCD_mtx_idler)
         else:
-            signal_inductor_ABCD_array = self.ind_ABCD_mtx_func(omega_arr, L_arr)
+            signal_inductor_ABCD_array = self.ind_abcd_mtx_func(omega_arr, L_arr)
             # print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
             total_ABCD_mtx_evaluated = np.matmul(
                 self.s2p_net_ABCD_mtx_signal,
-                self.ind_ABCD_mtx_func(L_arr, omega_arr)
+                self.ind_abcd_mtx_func(L_arr, omega_arr)
             )
 
         # now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
@@ -135,11 +136,11 @@ class interpolated_network_with_inverter_from_filename:
         return self.total_ABCD_mtx_evaluated_reshaped
 
         # now we can convert to S parameters using the helper function I already have
-    def evaluate_Smtx(self, L_val, Jpa_val, omega_arr):
+    def evaluate_smtx(self, L_val, Jpa_val, omega_arr):
 
-        return ABCD_to_S(self.evaluate_ABCD_mtx(L_val, Jpa_val, omega_arr), 50, num = True)
+        return abcd_to_s(self.evaluate_abcd_mtx(L_val, Jpa_val, omega_arr), 50, num = True)
 
-    def compare_ABCD_to_ideal(self, analytical_net):
+    def compare_abcd_to_ideal(self, analytical_net):
         '''
         compares the ABCD matrix of the simulated network to the ideal ABCD matrix of the filter circuit as computed from the network_synthesis module
         :param analytical_net:
@@ -152,8 +153,8 @@ class interpolated_network_with_inverter_from_filename:
         returns the impedance seen from the inverter
         (as converted from the ABCD matrix)
         '''
-        ABCD_mtxs = self.evaluate_ABCD_mtx(L_val, 0, omega_arr, active = False)
-        self.filterZmtxs = ABCD_to_Z(ABCD_mtxs, num=True)
+        ABCD_mtxs = self.evaluate_abcd_mtx(L_val, 0, omega_arr, active = False)
+        self.filterZmtxs = abcd_to_z(ABCD_mtxs, num=True)
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
         #impedance matrix and the source impedance
@@ -166,8 +167,8 @@ class interpolated_network_with_inverter_from_filename:
         returns the impedance seen from the environment
         (as converted from the ABCD matrix)
         '''
-        ABCD_mtxs = self.evaluate_ABCD_mtx(L_val, 0, omega_arr, active = False)
-        self.filterZmtxs = ABCD_to_Z(ABCD_mtxs,  num=True)
+        ABCD_mtxs = self.evaluate_abcd_mtx(L_val, 0, omega_arr, active = False)
+        self.filterZmtxs = abcd_to_z(ABCD_mtxs, num=True)
         Z = self.filterZmtxs
         #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
         #impedance matrix and the source impedance
@@ -175,7 +176,7 @@ class interpolated_network_with_inverter_from_filename:
 
         return port1_input_impedance
 
-    def modes_as_function_of_inductance(self, L_arr, omega_arr, debug=False):
+    def modes_as_function_of_inductance(self, l_arr, omega_arr, debug=False):
         '''
         Takes in an array of inductance values and frequencies
         returns the modes as a function of the inductance of the array inductor. In the format
@@ -183,10 +184,10 @@ class interpolated_network_with_inverter_from_filename:
         '''
 
         res_list = []
-        for Lval in L_arr:
-            if debug: print("Inductance value: ", Lval * 1e12, " pH")
-            Z_arr = self.find_p2_input_impedance(Lval, omega_arr, Z0=50)
-            res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug)
+        for l_val in l_arr:
+            if debug: print("Inductance value: ", l_val * 1e12, " pH")
+            z_arr = self.find_p2_input_impedance(l_val, omega_arr, Z0=50)
+            res = find_modes_from_input_impedance(z_arr, omega_arr, debug=debug)
             res_list.append(res)
         return res_list
 
