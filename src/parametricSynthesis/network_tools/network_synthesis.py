@@ -163,7 +163,7 @@ class network:
         # [display(el) for (i, el) in enumerate(self.ABCD_mtxs)]
         # display(self.net_subs)
 
-    def lumped_res(self, n: int, net_size, omega_sym: sp.Symbol, include_inductor=True, compensated=False):
+    def lumped_res(self, n: int, net_size, omega_sym: sp.Symbol, include_inductor=True, compensated=False, conjugate=False):
         """
         Adds a lumped resonator to the network
         :param n: location of the resonator in the network, this will be used to name the elements and assign the values
@@ -181,7 +181,10 @@ class network:
             ind_val = self.L[n]
             ind_el = inductor(omega_sym, ind_symbol, ind_val)
             self.net_elements.insert(0, ind_el)
-            self.ABCD_mtxs.insert(0, ind_el.ABCDshunt())
+            if conjugate:
+                self.ABCD_mtxs.insert(0, sp.conjugate(ind_el.ABCDshunt()))
+            else:
+                self.ABCD_mtxs.insert(0, ind_el.ABCDshunt())
             self.net_subs.insert(0, (ind_symbol, ind_val))
 
         cap_symbol = sp.symbols(f'C_{n}', positive=True)
@@ -191,7 +194,10 @@ class network:
             cap_val = self.Cu[n]
         cap_el = capacitor(omega_sym, cap_symbol, cap_val)
         self.net_elements.insert(0, cap_el)
-        self.ABCD_mtxs.insert(0, cap_el.ABCDshunt())
+        if conjugate:
+            self.ABCD_mtxs.insert(0, sp.conjugate(cap_el.ABCDshunt()))
+        else:
+            self.ABCD_mtxs.insert(0, cap_el.ABCDshunt())
         self.net_subs.insert(0, (cap_symbol, cap_val))
         Zres_symbol = sp.symbols(f"Zr_{n}", positive=True)
         omega_str = f"omega_r_{n}"
@@ -201,7 +207,7 @@ class network:
         self.res_Z_symbols.append(Zres_symbol)
         if include_inductor: self.parameter_subs += [(ind_symbol, Zres_symbol / omega_res_symbol)]
 
-    def tline_res(self, n, net_size, omega_sym, res_type='lambda4', use_approx=False):
+    def tline_res(self, n, net_size, omega_sym, res_type='lambda4', use_approx=False, conjugate=False):
 
         """
         Adds a transmission line resonator to the network
@@ -235,7 +241,10 @@ class network:
                 tline_Z_val,
                 tline_theta_val,
                 tline_omega0_val)
-            self.ABCD_mtxs.insert(0, tline_el.ABCDshunt_short(use_approx=use_approx))
+            if conjugate:
+                self.ABCD_mtxs.insert(0, sp.conjugate(tline_el.ABCDshunt_short(use_approx=use_approx)))
+            else:
+                self.ABCD_mtxs.insert(0, tline_el.ABCDshunt_short(use_approx=use_approx))
 
         elif res_type == 'lambda2_shunt':
             # print('shunt l2')
@@ -249,7 +258,10 @@ class network:
                 tline_Z_val,
                 tline_theta_val,
                 tline_omega0_val)
-            self.ABCD_mtxs.insert(0, tline_el.ABCDshunt_open(use_approx=use_approx))
+            if conjugate:
+                self.ABCD_mtxs.insert(0, sp.conjugate(tline_el.ABCDshunt_open(use_approx=use_approx)))
+            else:
+                self.ABCD_mtxs.insert(0, tline_el.ABCDshunt_open(use_approx=use_approx))
         else:
             raise Exception('error in TLINE type')
 
@@ -258,7 +270,7 @@ class network:
         self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
         self.net_subs.insert(0, (tline_omega0_symbol, tline_omega0_val))
 
-    def cap_cpld_lumped_unit(self, n, net_size, omega_sym, include_inductor=True):
+    def cap_cpld_lumped_unit(self, n, net_size, omega_sym, include_inductor=True, conjugate=False):
         """
         Adds a lumped element resonator and a coupling capacitor in series to the network
         :param n: same as in lumped_res
@@ -270,7 +282,7 @@ class network:
         # resonator
         self.lumped_res(n, net_size, omega_sym,
                         include_inductor=include_inductor,
-                        compensated=True)
+                        compensated=True, conjugate=conjugate)
         # coupler
         if n != net_size:  # all these have eliminated port inverters
             cpl_symbol = sp.symbols(f'Cc_{n}', positive=True)
@@ -278,11 +290,14 @@ class network:
             cpl_el = capacitor(omega_sym, cpl_symbol, cpl_val)
             self.net_elements.insert(0, cpl_el)
             self.net_subs.insert(0, (cpl_symbol, cpl_val))
-            self.ABCD_mtxs.insert(0, cpl_el.ABCDseries())
+            if conjugate:
+                self.ABCD_mtxs.insert(0, sp.conjugate(cpl_el.ABCDseries()))
+            else: 
+                self.ABCD_mtxs.insert(0, cpl_el.ABCDseries())
 
     def tline_cpld_lumped_unit(self, n, net_size, omega_sym,
                                include_inductor=True,
-                               tline_inv_Z_corr_factor=1, use_approx=False):
+                               tline_inv_Z_corr_factor=1, use_approx=False, conjugate=False):
         '''
         Adds a lumped element resonator and a coupling capacitor in series to the network
         :param n: same as in lumped_res
@@ -297,7 +312,7 @@ class network:
         # resonator
         self.lumped_res(n, net_size, omega_sym,
                         include_inductor=include_inductor,
-                        compensated=False)
+                        compensated=False, conjugate=conjugate)
         # coupler
         if n != net_size:  # all these have eliminated port inverters
 
@@ -315,7 +330,10 @@ class network:
                              tline_omega_val)
 
             self.net_elements.insert(0, tline_el)
-            self.ABCD_mtxs.insert(0, tline_el.ABCDseries(use_approx=use_approx))
+            if conjugate:
+                self.ABCD_mtxs.insert(0, sp.conjugate(tline_el.ABCDseries(use_approx=use_approx)))
+            else:
+                self.ABCD_mtxs.insert(0, tline_el.ABCDseries(use_approx=use_approx))
             self.net_subs.insert(0, (tline_theta_symbol, tline_theta_val))
             self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
             self.net_subs.insert(0, (tline_omega_symbol, tline_omega_val))
@@ -323,7 +341,7 @@ class network:
     def tline_cpld_tline_unit(self, n, net_size, omega_sym,
                               tline_inv_Z_corr_factor=1,
                               tline_res_type='lambda4_shunt',
-                              use_approx=False):
+                              use_approx=False, conjugate=False):
         '''
         Adds a transmission line resonator and a lambda/4 inverter in series to the network
         :param n: same as in lumped_res
@@ -336,7 +354,7 @@ class network:
         '''
         # resonator
         self.tline_res(n, net_size, omega_sym,
-                       res_type=tline_res_type)
+                       res_type=tline_res_type, conjugate=conjugate)
         # coupler
         if n != net_size:  # all these have eliminated port inverters
 
@@ -360,7 +378,7 @@ class network:
             self.net_subs.insert(0, (tline_omega_symbol, tline_omega_val))
 
     def circuit_unit(self, Ftype, n, net_size, omega_sym,
-                     include_inductor=True, tline_inv_Z_corr_factor=1, use_approx=False):
+                     include_inductor=True, tline_inv_Z_corr_factor=1, use_approx=False, conjugate = False):
         """
         Adds a circuit unit to the network, this is a unit that is made out of a resonator and a coupler.
         Makes me wish for switch cases in python.
@@ -379,27 +397,31 @@ class network:
 
         if Ftype == 'cap_cpld_lumped':
             self.cap_cpld_lumped_unit(n, net_size, omega_sym,
-                                      include_inductor=include_inductor)
+                                      include_inductor=include_inductor, conjugate = conjugate)
         elif Ftype == 'tline_cpld_lumped' or n == 0:
             self.tline_cpld_lumped_unit(
                 n, net_size, omega_sym,
                 include_inductor=include_inductor,
                 tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx)
+                use_approx=use_approx,
+                conjugate = conjugate)
 
         elif Ftype == 'tline_cpld_l4':
             self.tline_cpld_tline_unit(
                 n, net_size, omega_sym,
                 tline_res_type='lambda4_shunt',
                 tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx)
+                use_approx=use_approx,
+                conjugate = conjugate)
 
         elif Ftype == 'tline_cpld_l2':
             self.tline_cpld_tline_unit(
                 n, net_size, omega_sym,
                 tline_res_type='lambda2_shunt',
                 tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx)
+                use_approx=use_approx,
+                conjugate = conjugate
+            )
         else:
             raise Exception('error in circuit_unit filter type')
 
@@ -474,11 +496,11 @@ class network:
                     if n == 0:
                         self.circuit_unit(Ftype, n, net_size, idler_omega_sym, include_inductor=core_inductor,
                                           tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                          use_approx=use_approx)
+                                          use_approx=use_approx, conjugate = True)
                     else:
                         self.circuit_unit(Ftype, n, net_size, idler_omega_sym, include_inductor=True,
                                           tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                          use_approx=use_approx)
+                                          use_approx=use_approx, conjugate = True)
 
                 [l.reverse() for l in [self.net_elements, self.ABCD_mtxs]]
 
@@ -594,12 +616,37 @@ class network:
 
     def total_ABCD(self):
         '''
+        calculates ABCD matrix of the entire network thus far
+        '''
+        return compress_ABCD_array(self.ABCD_mtxs)
+
+    def total_passive_ABCD(self, array = True):
+        '''
         Let's calculate the scattering parameters of the network when the JPA is
         off. This should be easy, we're just looking at the phase structure of the
         network, the ABCD matrices are all multiplied together, and then transformed
         to scattering matrices
         '''
-        return compress_ABCD_array(self.ABCD_mtxs)
+        if array:
+            return compress_ABCD_array(self.ABCD_mtxs[::self.net_size])
+        else:
+            return compress_ABCD_array(self.ABCD_mtxs[::self.net_size-1])
+
+    def passive_impedance_seen_from_array(self):
+        '''
+        This function calculates the impedance seen from the input port
+        of the network when the JPA is off
+        '''
+        ABCD = self.total_ABCD()
+        return ABCD[0, 1] / ABCD[1, 1]
+
+    def passive_impedance_seen_from_inverter(self):
+        '''
+        This function calculates the impedance seen from the input port
+        of the network when the JPA is off
+        '''
+        ABCD = self.total_ABCD()
+        return ABCD[0, 1] / ABCD[1, 1]
 
     # def evaluate_passive_ABCD_mtx_num(self):
     #     '''
