@@ -647,7 +647,7 @@ class network:
         '''
         ABCD = self.total_passive_ABCD(array = True)
         Z = ABCD_to_Z(ABCD, self.Z0)
-        return Z[2,2]-Z[1,2]*Z[2,1]/(Z[1,1]+self.Z0)
+        return Z[1,1]-Z[0,1]*Z[1,0]/(Z[0,0]+self.Z0)
 
     def passive_impedance_seen_from_inverter(self):
         '''
@@ -658,7 +658,8 @@ class network:
 
         Z = ABCD_to_Z(ABCD, self.Z0)
 
-        return Z[2,2]-Z[1,2]*Z[2,1]/(Z[1,1]+self.Z0)
+        return Z[1, 1]-Z[0, 1]*Z[1, 0]/(Z[0, 0]+self.Z0)
+
 
     # def passive_impedance_seen_from_inverter(self):
     #     '''
