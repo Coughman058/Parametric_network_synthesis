@@ -7,7 +7,7 @@ import sympy as sp
 import numpy as np
 import plotly.graph_objects as go
 from ipywidgets import widgets
-from ..simulation_tools.HFSS_analysis import interpolatedNetworkWithInverterFromFilename as net_with_inverter
+from ..simulation_tools.HFSS_analysis import InterpolatedNetworkWithInverterFromFilename as net_with_inverter
 # L_vals = np.arange(0.5, 1.1, 0.05)*1e-9
 # J_vals = np.arange(0.01, 0.03, 0.001)
 
