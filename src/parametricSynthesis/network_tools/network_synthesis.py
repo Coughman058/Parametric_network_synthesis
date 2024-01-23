@@ -688,7 +688,7 @@ class network:
         impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(self.passive_impedance_seen_from_inverter())
         for Lval in L_arr:
             print("Inductance value: ", Lval * 1e12, " pH")
-            Z_arr = impedance_function(omega_arr, L_val * np.ones_like(f_arr))
+            Z_arr = impedance_function(omega_arr, Lval * np.ones_like(f_arr))
             res = find_modes_from_input_impedance(Z_arr, Lval, omega_arr, Z0=Z0)
             res_list.append(res)
         return res_list
