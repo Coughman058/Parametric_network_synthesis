@@ -640,12 +640,12 @@ class Network:
 
         if array:
             print("last ABCD matrix (not included in compression")
-            print(self.ABCD_mtxs[inverter_index])
-            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index])
+            print(self.ABCD_mtxs[inverter_index-1])
+            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index-1])
         else:
             print("last ABCD matrix (not included in compression")
-            print(self.ABCD_mtxs[inverter_index - 1])
-            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 1])
+            print(self.ABCD_mtxs[inverter_index - 2])
+            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 2])
 
     def passive_impedance_seen_from_array(self):
         '''
