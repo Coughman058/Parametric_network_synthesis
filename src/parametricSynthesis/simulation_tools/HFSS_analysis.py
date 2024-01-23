@@ -12,7 +12,7 @@ from scipy.optimize import newton
 from ..network_tools.component_ABCD import DegenerateParametricInverter_Amp, ABCD_to_S, ABCD_to_Z
 from dataclasses import dataclass
 from scipy.optimize import root_scalar
-
+from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_input_impedance
 '''
 overall pipeline: 
 - import an s2p file using skrf
@@ -65,7 +65,8 @@ class interpolated_network_with_inverter_from_filename:
         self.signal_inductor = self.inverter.signal_inductor
         self.signal_inductor_ABCD_func_ = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
                                                       self.signal_inductor.ABCDshunt())
-        self.inverter_ABCD = self.inverter.ABCD_shunt().subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
+        inverter_total_ABCD = self.inverter.ABCD_signal_inductor_shunt()*self.inverter.inverter_shunt()*self.inverter.ABCD_idler_inductor_shunt()
+        self.inverter_ABCD = inverter_total_ABCD.subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
 
     def ind_ABCD_mtx_func(self, L_arr, omega_arr):
         # becuse sympy's lambdify is absolutely *shit* at broadcasting, we need to do something like this
@@ -81,7 +82,7 @@ class interpolated_network_with_inverter_from_filename:
         returns the ABCD matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
         This can only handle variation over frequency! The inductance and coupling rate must be a single constant
         '''
-        if np.size(L_val) > 1 or np.size(J_val) > 1:
+        if np.size(L_val) > 1 or np.size(Jpa_val) > 1:
             raise Exception("Improper variation in ABCD mtx eval, use only one inductance at a time")
         L_arr = L_val*np.ones_like(omega_arr)
         Jpa_arr = Jpa_val*np.ones_like(omega_arr)
@@ -173,6 +174,21 @@ class interpolated_network_with_inverter_from_filename:
         port1_input_impedance = Z[0,0]-Z[1,0]*Z[0,1]/(Z[1,1]+Zl)
 
         return port1_input_impedance
+
+    def modes_as_function_of_inductance(self, L_arr, omega_arr, debug=False):
+        '''
+        Takes in an array of inductance values and frequencies
+        returns the modes as a function of the inductance of the array inductor. In the format
+        of the return of find_modes_from_input_impedance
+        '''
+
+        res_list = []
+        for Lval in L_arr:
+            if debug: print("Inductance value: ", Lval * 1e12, " pH")
+            Z_arr = self.find_p2_input_impedance(Lval, omega_arr, Z0=50)
+            res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug)
+            res_list.append(res)
+        return res_list
 
 
 
