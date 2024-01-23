@@ -26,7 +26,7 @@ def sum_real_and_imag(freal, fimag):
     return f_complex
 
 
-def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False):
+def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False, maxiter = 10000):
     '''
     returns the modes as a function of the inductance of the array inductor, as well as
     the real part of the impedance at the root and the slope of the imaginary part at the root
@@ -59,7 +59,7 @@ def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False):
     imYpp_at_roots = np.empty(sign_flip_freqs.size)
     for i, flip_freq in enumerate(sign_flip_freqs):
         if debug: print("Debug: sign flip at", flip_freq / 2 / np.pi / 1e9, " GHz")
-        root = newton(im_f, flip_freq, maxiter=1000)
+        root = newton(im_f, flip_freq, maxiter=maxiter)
         roots[i] = root
         if debug: print('Debug: Root at ', i, root / 2 / np.pi / 1e9, " GHz")
         reY_at_roots[i] = re_f(root)

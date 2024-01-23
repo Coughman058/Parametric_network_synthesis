@@ -681,7 +681,7 @@ class Network:
         # this should return a 1xN array of values of the total complex input impedance
         return Z_func
 
-    def modes_as_function_of_inductance(self, L_arr, omega_arr, debug=False):
+    def modes_as_function_of_inductance(self, L_arr, omega_arr, debug=False, maxiter = 10000):
         '''
         Takes in an array of inductance values and frequencies
         returns the modes as a function of the inductance of the array inductor. In the format
@@ -696,7 +696,7 @@ class Network:
         for Lval in L_arr:
             if debug: print("Inductance value: ", Lval * 1e12, " pH")
             Z_arr = impedance_function(omega_arr, Lval * np.ones_like(omega_arr))
-            res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug)
+            res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug, maxiter = maxiter)
             res_params = mode_results_to_device_params(res)
             res_list.append(res)
             res_params_list.append(res_params)
