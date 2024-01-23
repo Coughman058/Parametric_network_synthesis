@@ -181,13 +181,16 @@ class DegenerateParametricInverter_Amp:
   #   inv_ABCD = sp.Matrix([[0, -sp.I*self.K1],[sp.I/sp.conjugate(self.K2), 0]])
   #   return self.signal_inductor.ABCDseries()*inv_ABCD*self.idler_inductor.ABCDseries()
 
-  def ABCD_shunt(self):
-    '''
-    This has to include both the parallel inductors and the inversion matrix
-    '''
+  def ABCD_signal_inductor_shunt(self):
+    return self.signal_inductor.ABCDshunt()
+
+  def ABCD_inverter_shunt(self):
 
     inv_ABCD = sp.Matrix([[0, sp.I/self.Jpa_sym],[-sp.I*self.Jpa_sym, 0]])
-    return self.signal_inductor.ABCDshunt()*inv_ABCD*self.idler_inductor.ABCDshunt()
+    return inv_ABCD
+
+  def ABCD_idler_inductor_shunt(self):
+    return self.idler_inductor.ABCDshunt()
 
   def ABCD_pumpistor(self):
     inv_ABCD = sp.Matrix([[1,0],[1/self.R_active, 0]])
