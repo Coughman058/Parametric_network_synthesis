@@ -635,11 +635,14 @@ class network:
         '''
         #find out where the hell the inverter is. It could be just about anywhere depending on the network topology
         inverter_index = [(i, el) for (i, el) in enumerate(self.net_elements) if type(el) == DegenerateParametricInverter_Amp][0][0]
-        print("last ABCD matrix (not included in compression")
-        print(self.ABCD_mtxs[inverter_index])
+
         if array:
+            print("last ABCD matrix (not included in compression")
+            print(self.ABCD_mtxs[inverter_index])
             return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index])
         else:
+            print("last ABCD matrix (not included in compression")
+            print(self.ABCD_mtxs[inverter_index-1])
             return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index-1])
 
     def passive_impedance_seen_from_array(self):
@@ -647,7 +650,7 @@ class network:
         This function calculates the impedance seen from the array port
         of the network, without including the array inductance
         '''
-        ABCD = self.total_passive_ABCD(array = True)
+        ABCD = self.total_passive_ABCD(array = False)
         Z = ABCD_to_Z(ABCD, self.Z0)
         return Z[1,1]-Z[0,1]*Z[1,0]/(Z[0,0]+self.Z0)
 
@@ -656,7 +659,7 @@ class network:
         This function calculates the impedance seen from the array port
         of the network inclding the array inductance
         '''
-        ABCD = self.total_passive_ABCD(array = False)
+        ABCD = self.total_passive_ABCD(array = True)
 
         Z = ABCD_to_Z(ABCD, self.Z0)
 
