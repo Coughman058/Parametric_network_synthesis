@@ -625,7 +625,7 @@ class network:
         '''
         return compress_ABCD_array(self.ABCD_mtxs)
 
-    def total_passive_ABCD(self, array = False):
+    def total_passive_ABCD(self, array = True):
         '''
         Let's calculate the scattering parameters of the network when the JPA is
         off. This should be easy, we're just looking at the phase structure of the
@@ -636,16 +636,16 @@ class network:
         inverter_index = [(i, el) for (i, el) in enumerate(self.net_elements) if type(el) == DegenerateParametricInverter_Amp][0][0]
 
         if array:
-            return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index+1])
-        else:
             return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index])
+        else:
+            return compress_ABCD_array(self.ABCD_mtxs[0:inverter_index-1])
 
     def passive_impedance_seen_from_array(self):
         '''
         This function calculates the impedance seen from the array port
         of the network, without including the array inductance
         '''
-        ABCD = self.total_passive_ABCD()
+        ABCD = self.total_passive_ABCD(array = True)
         Z = ABCD_to_Z(ABCD, self.Z0)
         return Z[2,2]-Z[1,2]*Z[2,1]/(Z[1,1]+self.Z0)
 
@@ -654,7 +654,7 @@ class network:
         This function calculates the impedance seen from the array port
         of the network inclding the array inductance
         '''
-        ABCD = self.total_passive_ABCD()
+        ABCD = self.total_passive_ABCD(array = False)
 
         Z = ABCD_to_Z(ABCD, self.Z0)
 
