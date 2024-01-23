@@ -690,7 +690,7 @@ class network:
             self.passive_impedance_seen_from_inverter()
         )
         for Lval in L_arr:
-            print("Inductance value: ", Lval * 1e12, " pH")
+            if debug: print("Inductance value: ", Lval * 1e12, " pH")
             Z_arr = impedance_function(omega_arr, Lval * np.ones_like(omega_arr))
             res = find_modes_from_input_impedance(Z_arr, omega_arr, debug = debug)
             res_list.append(res)
