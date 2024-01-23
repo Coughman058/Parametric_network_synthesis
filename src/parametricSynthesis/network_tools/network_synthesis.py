@@ -3,7 +3,7 @@ from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
 # from tensorwaves.function.sympy import fast_lambdify
-from ..simulation_tools.Quantizer import find_modes_from_input_impedance
+from ..simulation_tools.Quantizer import find_modes_from_input_impedance, mode_results_to_device_params
 
 
 def get_active_network_prototypes():
@@ -686,6 +686,7 @@ class Network:
         '''
 
         res_list = []
+        res_params_list = []
         impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(
             self.passive_impedance_seen_from_inverter()
         )
@@ -693,5 +694,8 @@ class Network:
             if debug: print("Inductance value: ", Lval * 1e12, " pH")
             Z_arr = impedance_function(omega_arr, Lval * np.ones_like(omega_arr))
             res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug)
+            res_params = mode_results_to_device_params(res)
             res_list.append(res)
-        return res_list
+            res_params_list.append(res_params)
+        return res_list, res_params_list
+

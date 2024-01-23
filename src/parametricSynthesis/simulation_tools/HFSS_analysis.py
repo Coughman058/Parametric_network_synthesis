@@ -12,7 +12,7 @@ from scipy.optimize import newton
 from ..network_tools.component_ABCD import DegenerateParametricInverterAmp, abcd_to_s, abcd_to_z
 from dataclasses import dataclass
 from scipy.optimize import root_scalar
-from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_input_impedance
+from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_input_impedance, mode_results_to_device_params
 '''
 overall pipeline: 
 - import an s2p file using skrf
@@ -184,12 +184,15 @@ class InterpolatedNetworkWithInverterFromFilename:
         '''
 
         res_list = []
+        res_params_list = []
         for l_val in l_arr:
             if debug: print("Inductance value: ", l_val * 1e12, " pH")
             z_arr = self.find_p2_input_impedance(l_val, omega_arr, Z0=50)
             res = find_modes_from_input_impedance(z_arr, omega_arr, debug=debug)
+            res_params = mode_results_to_device_params(res)
             res_list.append(res)
-        return res_list
+            res_params_list.append(res_params)
+        return res_list, res_params_list
 
 
 
