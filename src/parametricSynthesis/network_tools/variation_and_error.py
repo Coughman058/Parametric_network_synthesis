@@ -1,13 +1,13 @@
 import sympy as sp
 from copy import deepcopy
-from .component_ABCD import inductor
+from .component_ABCD import Inductor
 import matplotlib.pyplot as plt
 import numpy as np
 
 def input_inductance_variation(net, L_wb_value, f_arr_Ghz, method = 'pumpistor'):
   L_wb_symbol = sp.symbols("L_{wb}")
-  wirebond_inductor_signal = inductor(net.signal_omega_sym, L_wb_symbol, L_wb_value)
-  wirebond_inductor_idler = inductor(net.idler_omega_sym, L_wb_symbol, L_wb_value)
+  wirebond_inductor_signal = Inductor(net.signal_omega_sym, L_wb_symbol, L_wb_value)
+  wirebond_inductor_idler = Inductor(net.idler_omega_sym, L_wb_symbol, L_wb_value)
   net_with_inductor = deepcopy(net)
   net_with_inductor.ABCD_mtxs.insert(0, wirebond_inductor_signal.ABCDseries())
   if method == 'pumped_mutual':

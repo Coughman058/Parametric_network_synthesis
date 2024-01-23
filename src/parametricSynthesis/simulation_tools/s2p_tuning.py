@@ -7,7 +7,7 @@ import sympy as sp
 import numpy as np
 import plotly.graph_objects as go
 from ipywidgets import widgets
-from ..simulation_tools.HFSS_analysis import interpolated_network_with_inverter_from_filename as net_with_inverter
+from ..simulation_tools.HFSS_analysis import interpolatedNetworkWithInverterFromFilename as net_with_inverter
 # L_vals = np.arange(0.5, 1.1, 0.05)*1e-9
 # J_vals = np.arange(0.01, 0.03, 0.001)
 
@@ -41,7 +41,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
         for sweep_val, HFSS in zip(sweep_vals, HFSS_sweep_sims):
           L_arr = L*np.ones(omega_arr.size)
           Jpa_arr = J*np.ones(omega_arr.size)
-          Smtx_res = HFSS.evaluate_Smtx(L_arr, Jpa_arr, omega_arr)
+          Smtx_res = HFSS.evaluate_smtx(L_arr, Jpa_arr, omega_arr)
           data = pd.DataFrame({'Signal Frequency (GHz)': omega_arr/2/np.pi/1e9,
                                 'Array Inductance (nH)': L_arr*1e9,
                                 'Inversion Rate': Jpa_arr,
