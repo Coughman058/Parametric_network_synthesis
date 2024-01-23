@@ -523,6 +523,7 @@ class network:
         :param omega: sympy symbol for the angular frequency
         :return: list of tuples of the form (symbol, value) for the .subs() method
         """
+        self.omega_from_inverter = omega
         return [(self.Z0, 50),
                 # (self.inv_el.phi, 0),
                 (self.inv_el.omega1, omega),
