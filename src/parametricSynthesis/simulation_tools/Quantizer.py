@@ -59,8 +59,13 @@ def find_modes_from_input_impedance(p2_input_impedance, omega_arr, debug=False, 
     imYpp_at_roots = np.empty(sign_flip_freqs.size)
     for i, flip_freq in enumerate(sign_flip_freqs):
         if debug: print("Debug: sign flip at", flip_freq / 2 / np.pi / 1e9, " GHz")
-        root = newton(im_f, flip_freq, maxiter=maxiter)
-        roots[i] = root
+        try:
+            root = newton(im_f, flip_freq, maxiter=maxiter)
+            roots[i] = root
+        except RuntimeError:
+            print("RuntimeError: Failed to find root at ", flip_freq / 2 / np.pi / 1e9, " GHz")
+            # root = np.nan
+            #we'll just use the last one
         if debug: print('Debug: Root at ', i, root / 2 / np.pi / 1e9, " GHz")
         reY_at_roots[i] = re_f(root)
         imYp_at_roots[i] = im_fp(root)
