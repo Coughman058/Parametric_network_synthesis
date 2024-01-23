@@ -1,3 +1,7 @@
+from scipy.interpolate import interp1d
+import numpy as np
+from scipy.optimize import newton
+
 '''
 The need for quantization extends to both the analytical circuit and the simulation,
 so the goal for this file is to build a black-box quantizer that can work for both
