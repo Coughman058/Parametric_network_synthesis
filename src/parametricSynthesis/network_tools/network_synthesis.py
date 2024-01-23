@@ -12,12 +12,15 @@ def get_active_network_prototypes():
     :return: dictionary of the active network prototypes
     """
     active_network_prototypes = dict(
-        N3_Butter_20dB=np.array([1.0, 0.5846, 0.6073, 0.2981, 0.9045]),
-        N3_Cheby_20dB_R01=np.array([1.0, 0.4656, 0.5126, 0.2707, 0.9045]),
-        N3_Cheby_20dB_R05=np.array([1.0, 0.5899, 0.6681, 0.3753, 0.9045]),
-        N2_Cheby_20dB_R05=np.array([1.0, 0.3184, 0.1982, 1.1055]),
-        N4_Leg_20dB_R05=np.array([1.0, 0.6886, 0.8864, 0.8918, 0.2903, 1.1055]),
-        N2_Leg_20dB_R05=np.array([1.0, 0.3105, 0.1868, 1.1055])
+        N2_Cheby_20dB_R05 = np.array([1.0, 0.3184, 0.1982, 1.1055]),
+        N2_Leg_20dB_R05 = np.array([1.0, 0.3105, 0.1868, 1.1055]),
+        N3_Butter_20dB = np.array([1.0, 0.5846, 0.6073, 0.2981, 0.9045]),
+        N3_Cheby_20dB_R01 = np.array([1.0, 0.4656, 0.5126, 0.2707, 0.9045]),
+        N3_Cheby_20dB_R05 = np.array([1.0, 0.5899, 0.6681, 0.3753, 0.9045]),
+        N3_Leg_20dB_R01 = np.array([1.0, 0.4084, 0.4399, 0.2250, 0.9045]),
+        N3_Leg_20dB_R05 = np.array([1.0, 0.5244, 0.5778, 0.3055, 0.9045]),
+        N4_Leg_17dB = np.array([1.0, 0.9598, 1.1333, 1.3121, 0.4440, 1.1528]),
+        N4_Leg_20dB_R05 = np.array([1.0, 0.6886, 0.8864, 0.8918, 0.2903, 1.1055])
     )
     return active_network_prototypes
 
