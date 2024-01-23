@@ -51,7 +51,11 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     # Z_last_lambda_over_2 = Z_last*np.pi/4
     # from PA out
     z_arr[0] = ZPA_res
-    z_arr[-2] = Z_last
+    if z_arr[-2] == 0:
+        z_arr[-2] = Z_last
+        elim_inverter = True
+    else:
+        elim_inverter = False
     # np.array([ZPA_res,20,20,Z_last,50])
     # z_arr = np.array([ZPA_res,Z_last,50])
     # now calculate the inverters
@@ -103,7 +107,8 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
                    Z=z_arr,
                    beta=beta_arr,
                    beta_p=beta_p,
-                   R_active_val=calculate_PA_impedance(ZPA_res, g_arr[0], g_arr[1], dw))
+                   R_active_val=calculate_PA_impedance(ZPA_res, g_arr[0], g_arr[1], dw),
+                   elim_inverter = elim_inverter)
 
 
 @dataclass
@@ -137,6 +142,7 @@ class Network:
     beta: np.ndarray
     beta_p: float
     R_active_val: float
+    elim_imverter: bool
 
     def __post_init__(self):
         self.Ftypes = [
@@ -291,7 +297,7 @@ class Network:
                         include_inductor=include_inductor,
                         compensated=True, conjugate=conjugate)
         # coupler
-        if n != net_size:  # all these have eliminated port inverters
+        if n != net_size or self.elim_imverter == False:  # all these have eliminated port inverters
             cpl_symbol = sp.symbols(f'Cc_{n}', positive=True)
             cpl_val = self.CC[n]*inv_corr_factor
             cpl_el = Capacitor(omega_sym, cpl_symbol, cpl_val)
@@ -321,7 +327,7 @@ class Network:
                         include_inductor=include_inductor,
                         compensated=False, conjugate=conjugate)
         # coupler
-        if n != net_size:  # all these have eliminated port inverters
+        if n != net_size or self.elim_imverter == False:  # all these have eliminated port inverters
 
             tline_Z_symbol, tline_theta_symbol, tline_omega_symbol = sp.symbols(f'Z_{n}, theta_{n}, omega_{n}',
                                                                                 positive=True)
@@ -363,7 +369,7 @@ class Network:
         self.tline_res(n, net_size, omega_sym,
                        res_type=tline_res_type, conjugate=conjugate)
         # coupler
-        if n != net_size:  # all these have eliminated port inverters
+        if n != net_size or self.elim_imverter == False:  # all these have eliminated port inverters
 
             tline_Z_symbol, tline_theta_symbol, tline_omega_symbol = sp.symbols(f'Z_{n}, theta_{n}, omega_{n}',
                                                                                 positive=True)
