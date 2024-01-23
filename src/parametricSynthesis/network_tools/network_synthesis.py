@@ -627,7 +627,7 @@ class Network:
         '''
         return compress_abcd_array(self.ABCD_mtxs)
 
-    def total_passive_ABCD(self, array=True):
+    def total_passive_ABCD(self, array=True, add_index = 0):
         '''
         Let's calculate the scattering parameters of the network when the JPA is
         off. This should be easy, we're just looking at the phase structure of the
@@ -640,28 +640,28 @@ class Network:
 
         if array:
             print("last ABCD matrix (not included in compression")
-            print(self.ABCD_mtxs[inverter_index-1])
-            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index-1])
+            print(self.ABCD_mtxs[inverter_index+add_index])
+            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index+add_index])
         else:
             print("last ABCD matrix (not included in compression")
-            print(self.ABCD_mtxs[inverter_index - 2])
-            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 2])
+            print(self.ABCD_mtxs[inverter_index - 1+add_index])
+            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 1+add_index])
 
-    def passive_impedance_seen_from_array(self):
+    def passive_impedance_seen_from_array(self, add_index=0):
         '''
         This function calculates the impedance seen from the array port
         of the network, without including the array inductance
         '''
-        ABCD = self.total_passive_ABCD(array=False)
+        ABCD = self.total_passive_ABCD(array=False, add_index = add_index)
         Z = abcd_to_z(ABCD, self.Z0)
         return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
 
-    def passive_impedance_seen_from_inverter(self):
+    def passive_impedance_seen_from_inverter(self, add_index = 0):
         '''
         This function calculates the impedance seen from the array port
-        of the network inclding the array inductance
+        of the network including the array inductance
         '''
-        ABCD = self.total_passive_ABCD(array=True)
+        ABCD = self.total_passive_ABCD(array=True, add_index = add_index)
 
         Z = abcd_to_z(ABCD, self.Z0)
 
