@@ -91,7 +91,7 @@ def mode_results_to_device_params(res):
 
     return q, c, L, Zpeff
 
-def g3_from_lj_and_zpeff(Lj, Zpeff, LC_override = None):
+def g3_from_lj_N_and_zpeff(Lj, N, Zpeff, LC_override = None):
     '''
     takes in the inductance of the junction and the effective impedance of the array mode and returns the g3
     :param Lj:
@@ -109,6 +109,6 @@ def g3_from_lj_and_zpeff(Lj, Zpeff, LC_override = None):
         L, C = LC_override
         phi_zpf = np.sqrt(hbar*np.sqrt(L/C)/2)/phi0
 
-    g3 = phi_zpf**3*Ej/hbar
+    g3 = phi_zpf**3*Ej/hbar/6
 
     return g3
