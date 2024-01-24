@@ -9,6 +9,13 @@ we need classes for each circuit element, in particular, functions that can
 leverage sympy to give symbolic scattering information would be very helpful
 '''
 
+def z_to_input_impedance(z: Union[sp.Matrix, np.array], Z0: Union[sp.Symbol, float], num=False):
+    Z11 = z[0, 0]
+    Z12 = z[0, 1]
+    Z21 = z[1, 0]
+    Z22 = z[1, 1]
+    Zin = (Z11 + Z12 / Z0 + Z21 * Z0 + Z22)
+    return Zin
 
 def abcd_to_s(abcd: Union[sp.Matrix, np.array], Z0: Union[sp.Symbol, float], num=False):
     A = abcd[0, 0]
@@ -220,3 +227,4 @@ class DegenerateParametricInverterAmp:
             return (np.sqrt(G) - 1) / (np.sqrt(G) + 1) * (frac_bw / g_arr[1]) ** 2 * g_arr[-1] ** 2
         else:
             return (np.sqrt(G) - 1) / (np.sqrt(G) + 1) * (frac_bw / g_arr[1]) ** 2 / g_arr[-1] ** 2
+

@@ -86,7 +86,7 @@ def mode_results_to_device_params(res):
     # now find the quality factor
     q = np.abs(roots) /2 * (imYp_at_roots/reY_at_roots)
     c = 1 / 2 * imYp_at_roots
-    Zpeff = 1/roots/c
+    Zpeff = 2/roots/imYp_at_roots
     L = 1/(roots**2*c)
 
     return q, c, L, Zpeff
@@ -103,12 +103,13 @@ def g3_from_lj_n_and_zpeff(Lj, N, Zpeff, LC_override = None):
     e = 1.60217662e-19
     phi0 = hbar / 2 / e
     Ej = phi0**2/Lj
+    c3_max = Ej/phi0**3/6/N
     if LC_override == None:
         phi_zpf = np.sqrt(hbar*Zpeff/2)
     else:
         L, C = LC_override
         phi_zpf = np.sqrt(hbar*np.sqrt(L/C)/2)
 
-    g3 = phi_zpf**3*Ej/hbar/6/N/phi0
+    g3 = phi_zpf**3*c3_max
 
-    return g3
+    return g3/hbar
