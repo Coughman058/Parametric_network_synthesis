@@ -75,12 +75,19 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     CC_arr = J_arr / w0
     if elim_inverter:
         CC_arr[-1] = 0
+        CC_arr_padded = np.pad(CC_arr, 1)
+        C_arr_uncomp = 1 / w0 / z_arr
+        C_arr = np.array([C_arr_uncomp[i] - CC_arr_padded[i] - CC_arr_padded[i + 1]
+                          for i in range(len(C_arr_uncomp))])
     else:
         print("cap_modification_factor")
         CC_arr[-1] = CC_arr[-1]/np.sqrt(1-z_arr[-1]**2*J_arr[-1]**2)
-    CC_arr_padded = np.pad(CC_arr, 1)
-    C_arr_uncomp = 1 / w0 / z_arr
-    C_arr = np.array([C_arr_uncomp[i] - CC_arr_padded[i] - CC_arr_padded[i + 1] for i in range(len(C_arr_uncomp))])
+        CC_arr_comp = np.pad(CC_arr, 1)
+        CC_arr_comp[-2] = CC_arr_comp[-2]*(1-z_arr[-2]**2*J_arr[-2]**2)
+        C_arr_uncomp = 1 / w0 / z_arr
+        C_arr = np.array([C_arr_uncomp[i] - CC_arr_comp[i] - CC_arr_comp[i + 1]
+                          for i in range(len(C_arr_uncomp))])
+
     C_arr[-1] = 0
     L_arr = z_arr / w0
     L_arr[-1] = 0
