@@ -58,6 +58,8 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     else:
         print("Last inverter will be included")
         elim_inverter = False
+    dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
+    print("Fractional Bandwidth limit of the chosen circuit: ")
     # np.array([ZPA_res,20,20,Z_last,50])
     # z_arr = np.array([ZPA_res,Z_last,50])
     # now calculate the inverters
@@ -68,12 +70,13 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         #  calculate_middle_inverter_constant(dw, g_arr[3], g_arr[4], z_arr[2], z_arr[3]),
         #  calculate_middle_inverter_constant(dw, g_arr[4], g_arr[5], z_arr[3], z_arr[4]),
     )
-
+    # J_arr[0] /= np.sqrt(dw)
     J_arr[-1] /= np.sqrt(dw)
     CC_arr = J_arr / w0
     if elim_inverter:
         CC_arr[-1] = 0
     else:
+        print("cap_modification_factor")
         CC_arr[-1] = CC_arr[-1]/np.sqrt(1-z_arr[-1]**2*J_arr[-1]**2)
     CC_arr_padded = np.pad(CC_arr, 1)
     C_arr_uncomp = 1 / w0 / z_arr
