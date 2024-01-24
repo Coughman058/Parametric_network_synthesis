@@ -58,6 +58,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     else:
         print("Last inverter will be included")
         elim_inverter = False
+
     dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
     print("Fractional Bandwidth limit of the chosen circuit: ", dw_limit)
     # np.array([ZPA_res,20,20,Z_last,50])
@@ -72,21 +73,25 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     )
     # J_arr[0] /= np.sqrt(dw)
     J_arr[-1] /= np.sqrt(dw)
-    CC_arr = J_arr / w0
+    CC_arr_raw = J_arr / w0
     if elim_inverter:
-        CC_arr[-1] = 0
-        CC_arr_padded = np.pad(CC_arr, 1)
+        CC_arr_raw[-1] = 0
+        CC_arr_padded = np.pad(CC_arr_raw, 1)
         C_arr_uncomp = 1 / w0 / z_arr
         C_arr = np.array([C_arr_uncomp[i] - CC_arr_padded[i] - CC_arr_padded[i + 1]
                           for i in range(len(C_arr_uncomp))])
     else:
-        print("cap_modification_factor")
-        CC_arr[-1] = CC_arr[-1]/np.sqrt(1-z_arr[-1]**2*J_arr[-1]**2)
+        mod_factor = (1-z_arr[-1]**2*J_arr[-1]**2)
+        print("maximum impedance of first resonator: ", 1/J_arr[-1])
+        CC_arr = np.copy(CC_arr_raw)
+        CC_arr[-1] = CC_arr[-1]/np.sqrt(mod_factor)
         CC_arr_comp = np.pad(CC_arr, 1)
-        CC_arr_comp[-2] = CC_arr_comp[-2]*(1-z_arr[-2]**2*J_arr[-2]**2)
+        CC_arr_comp[-2] = CC_arr_comp[-2]*mod_factor
         C_arr_uncomp = 1 / w0 / z_arr
         C_arr = np.array([C_arr_uncomp[i] - CC_arr_comp[i] - CC_arr_comp[i + 1]
                           for i in range(len(C_arr_uncomp))])
+    if np.any(C_arr<0):
+        print("Warning: negative capacitance in filter, maybe try TLINE implementation")
 
     C_arr[-1] = 0
     L_arr = z_arr / w0
