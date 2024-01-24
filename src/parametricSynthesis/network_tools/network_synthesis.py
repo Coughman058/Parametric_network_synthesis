@@ -69,7 +69,6 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
     J_arr[-1] /= np.sqrt(dw)
     CC_arr = J_arr / w0
-    CC_arr[-1] = 0
     CC_arr_padded = np.pad(CC_arr, 1)
     C_arr_uncomp = 1 / w0 / z_arr
     C_arr = np.array([C_arr_uncomp[i] - CC_arr_padded[i] - CC_arr_padded[i + 1] for i in range(len(C_arr_uncomp))])
@@ -283,7 +282,10 @@ class Network:
         self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
         self.net_subs.insert(0, (tline_omega0_symbol, tline_omega0_val))
 
-    def cap_cpld_lumped_unit(self, n, net_size, omega_sym, include_inductor=True, conjugate=False, inv_corr_factor = 1):
+    def cap_cpld_lumped_unit(self, n, net_size, omega_sym,
+                             include_inductor=True,
+                             conjugate=False,
+                             inv_corr_factor = 1):
         """
         Adds a lumped element resonator and a coupling capacitor in series to the network
         :param n: same as in lumped_res
@@ -303,6 +305,7 @@ class Network:
             cpl_el = Capacitor(omega_sym, cpl_symbol, cpl_val)
             self.net_elements.insert(0, cpl_el)
             self.net_subs.insert(0, (cpl_symbol, cpl_val))
+            print()
             if conjugate:
                 self.ABCD_mtxs.insert(0, sp.conjugate(cpl_el.ABCDseries()))
             else:
@@ -410,7 +413,9 @@ class Network:
 
         if Ftype == 'cap_cpld_lumped':
             self.cap_cpld_lumped_unit(n, net_size, omega_sym,
-                                      include_inductor=include_inductor, conjugate=conjugate, inv_corr_factor = tline_inv_Z_corr_factor)
+                                      include_inductor=include_inductor,
+                                      conjugate=conjugate,
+                                      inv_corr_factor = tline_inv_Z_corr_factor)
         elif Ftype == 'tline_cpld_lumped' or n == 0:
             self.tline_cpld_lumped_unit(
                 n, net_size, omega_sym,
