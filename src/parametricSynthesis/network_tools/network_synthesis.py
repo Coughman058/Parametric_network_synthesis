@@ -82,7 +82,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
                           for i in range(len(C_arr_uncomp))])
     else:
         mod_factor = (1-z_arr[-1]**2*J_arr[-1]**2)
-        print("maximum impedance of first resonator: ", 1/J_arr[-1])
+        print("maximum impedance of external resonator: ", 1/J_arr[-1])
         CC_arr = np.copy(CC_arr_raw)
         CC_arr[-1] = CC_arr[-1]/np.sqrt(mod_factor)
         CC_arr_comp = np.pad(CC_arr, 1)
