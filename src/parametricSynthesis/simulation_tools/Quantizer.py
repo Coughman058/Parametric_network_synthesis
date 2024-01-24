@@ -104,11 +104,11 @@ def g3_from_lj_n_and_zpeff(Lj, N, Zpeff, LC_override = None):
     phi0 = hbar / 2 / e
     Ej = phi0**2/Lj
     if LC_override == None:
-        phi_zpf = np.sqrt(hbar*Zpeff/2)/phi0
+        phi_zpf = np.sqrt(hbar*Zpeff/2)
     else:
         L, C = LC_override
-        phi_zpf = np.sqrt(hbar*np.sqrt(L/C)/2)/phi0
+        phi_zpf = np.sqrt(hbar*np.sqrt(L/C)/2)
 
-    g3 = phi_zpf**3*Ej/hbar/6/N
+    g3 = phi_zpf**3*Ej/hbar/6/N/phi0
 
     return g3
