@@ -71,6 +71,8 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
     J_arr[-1] /= np.sqrt(dw)
     CC_arr = J_arr / w0
+    if elim_inverter:
+        CC_arr[-1] = 0
     CC_arr_padded = np.pad(CC_arr, 1)
     C_arr_uncomp = 1 / w0 / z_arr
     C_arr = np.array([C_arr_uncomp[i] - CC_arr_padded[i] - CC_arr_padded[i + 1] for i in range(len(C_arr_uncomp))])
