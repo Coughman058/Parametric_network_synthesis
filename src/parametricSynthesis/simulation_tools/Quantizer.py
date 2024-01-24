@@ -90,3 +90,24 @@ def mode_results_to_device_params(res):
     L = 1/(roots**2*c)
 
     return q, c, L, Zpeff
+
+def g3_from_Lj_and_Zpeff(Zpeff, LC_override = None):
+    '''
+    takes in the inductance of the junction and the effective impedance of the array mode and returns the g3
+    :param Lj:
+    :param Zpeff:
+    :return:
+    '''
+
+    hbar = 1.0545718e-34
+    e = 1.60217662e-19
+    phi0 = hbar / 2 / e
+    if LC_override == None:
+        phi_zpf = np.sqrt(hbar*Zpeff/2)/phi0
+    else:
+        L, C = LC_override
+        phi_zpf = np.sqrt(hbar*np.sqrt(L/C)/2)/phi0
+
+    g3 = phi_zpf**3/hbar
+
+    return g3
