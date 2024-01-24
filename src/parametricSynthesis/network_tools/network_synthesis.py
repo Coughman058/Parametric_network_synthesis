@@ -52,9 +52,11 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     # from PA out
     z_arr[0] = ZPA_res
     if z_arr[-2] == 0:
+        print("Last inverter will be eliminated")
         z_arr[-2] = Z_last
         elim_inverter = True
     else:
+        print("Last inverter will be included")
         elim_inverter = False
     # np.array([ZPA_res,20,20,Z_last,50])
     # z_arr = np.array([ZPA_res,Z_last,50])
