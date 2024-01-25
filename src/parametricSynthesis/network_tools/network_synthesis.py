@@ -65,7 +65,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     #sympy with the assist in finding the roots
     num_modes = len(g_arr) - 2
     #these indices mean nothing, look at the colab for more info
-    g3_sp, g2_sp, g1_sp, J32_sp, J21_sp, Z3_sp, Z2_sp, Z1_sp = sp.symbols("g3 g2 g1")
+    g3_sp, g2_sp, g1_sp, J32_sp, J21_sp, Z3_sp, Z2_sp, Z1_sp = sp.symbols("g3 g2 g1 J32 J21 Z3 Z2 Z1")
     Js_sp = [('J%d%d' % (j, k), sp.symbols('J%d%d' % (j, k), positive=True)) for k in range(num_modes + 2) for j in
           range(num_modes + 2)]
     Zs_sp = [('Z%d' % j, sp.symbols('Z%d' % j, positive=True)) for j in range(num_modes + 2)]
