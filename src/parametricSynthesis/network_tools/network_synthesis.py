@@ -682,6 +682,15 @@ class Network:
             print(self.ABCD_mtxs[inverter_index - 1+add_index])
             return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 1+add_index])
 
+    def passive_impedance_seen_from_port(self, add_index=0):
+        '''
+        This function calculates the impedance seen from the outside port.
+        This is just Z00 for a one port network
+        '''
+        ABCD = self.total_passive_ABCD(array=True, add_index = add_index)
+        Z = abcd_to_z(ABCD, self.Z0)
+        return Z[0,0]
+
     def passive_impedance_seen_from_array(self, add_index=0):
         '''
         This function calculates the impedance seen from the array port
