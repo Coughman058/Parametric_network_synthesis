@@ -64,7 +64,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     first_res_lower_bound = dw*Z0/(g_arr[-1]*g_arr[-2])
     rootsolve = lambda zsolve: zsolve-1/(np.sqrt(dw*(1-z_arr[-1]*dw/(zsolve*g_arr[-2]*g_arr[-3]))/(z_arr[-1]*z_arr[-2]*g_arr[-1]*g_arr[-2]))+dw/(np.sqrt(z_arr[-3]*z_arr[-2]*g_arr[-3]*g_arr[-2])))
     try:
-        first_res_upper_bound = newton(rootsolve, p0 = ZPA_res, maxiter = 10000)[0]
+        first_res_upper_bound = newton(rootsolve, np.sqrt(ZPA_res*z_arr[-1]), maxiter = 10000)[0]
     except RuntimeError:
         print("unable to find resonator upper bound")
         first_res_upper_bound = 1e10
