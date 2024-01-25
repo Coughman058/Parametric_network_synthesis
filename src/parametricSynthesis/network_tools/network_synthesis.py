@@ -72,7 +72,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     dw_sp, omega_sp, Zc_sp = sp.symbols('\delta\omega omega Zc')
 
     J32_rule = [(J32_sp, sp.sqrt(dw / (g3_sp * g2_sp * Z3_sp * Z2_sp)))]
-    J21_rule = [(J21_sp, sp.sqrt(dw ** 2 / (g2_sp * g1 * Z2_sp * Z1_sp)))]
+    J21_rule = [(J21_sp, sp.sqrt(dw ** 2 / (g2_sp * g1_sp * Z2_sp * Z1_sp)))]
     [display(sp.Eq(*rule)) for rule in J32_rule + J21_rule]
     # print("The following must be less than 0, so let's find its roots:")
     expr = J32_sp * sp.sqrt(1 - (J32_sp * Z3_sp) ** 2) + J21_sp
