@@ -62,9 +62,28 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
     dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
     first_res_lower_bound = dw*Z0/(g_arr[-1]*g_arr[-2])
-    rootsolve = lambda zsolve: zsolve-1/(np.sqrt(dw*(1-z_arr[-1]*dw/(zsolve*g_arr[-2]*g_arr[-3]))/(z_arr[-1]*z_arr[-2]*g_arr[-1]*g_arr[-2]))+dw/(np.sqrt(z_arr[-3]*z_arr[-2]*g_arr[-3]*g_arr[-2])))
+    #sympy with the assist in finding the roots
+    num_modes = len(g_arr) - 2
+    #these indices mean nothing, look at the colab for more info
+    g3_sp, g2_sp, g1_sp, J32_sp, J21_sp, Z3_sp, Z2_sp, Z1_sp = sp.symbols("g3 g2 g1")
+    Js_sp = [('J%d%d' % (j, k), sp.symbols('J%d%d' % (j, k), positive=True)) for k in range(num_modes + 2) for j in
+          range(num_modes + 2)]
+    Zs_sp = [('Z%d' % j, sp.symbols('Z%d' % j, positive=True)) for j in range(num_modes + 2)]
+    dw_sp, omega_sp, Zc_sp = sp.symbols('\delta\omega omega Zc')
+
+    J32_rule = [(J32_sp, sp.sqrt(dw / (g3_sp * g2_sp * Z3_sp * Z2_sp)))]
+    J21_rule = [(J21_sp, sp.sqrt(dw ** 2 / (g2_sp * g1 * Z2_sp * Z1_sp)))]
+    [display(sp.Eq(*rule)) for rule in J32_rule + J21_rule]
+    # print("The following must be less than 0, so let's find its roots:")
+    expr = J32_sp * sp.sqrt(1 - (J32_sp * Z3_sp) ** 2) + J21_sp
+    solveExpr = sp.simplify(
+        (1 / expr.subs(J32_rule + J21_rule)) - Z2_sp)
+
+    num_subs = [(Z3_sp, z_arr[-1]), (Z1_sp, z_arr[-3]), (g3_sp, g_arr[-1]), (g2_sp, g_arr[-2]), (g1_sp, g_arr[-3]),
+                (omega_sp, 2 * np.pi * 7e9), (dw_sp, 0.1)]
+    solveEq_num = sp.lambdify([Z2_sp], solveExpr.subs(num_subs))
     try:
-        first_res_upper_bound = newton(rootsolve, np.sqrt(ZPA_res*z_arr[-1]), maxiter = 10000)[0]
+        first_res_upper_bound = newton(solveEq_num, np.sqrt(z_arr[-3]*z_arr[-1]), maxiter = 10000)
     except RuntimeError:
         print("unable to find resonator upper bound")
         first_res_upper_bound = 1e10
