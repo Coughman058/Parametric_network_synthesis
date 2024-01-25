@@ -88,15 +88,10 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         print("unable to find resonator upper bound")
         first_res_upper_bound = 1e10
     print("first resonator impedance must be between {} and {}".format(first_res_lower_bound,first_res_upper_bound))
-    # np.array([ZPA_res,20,20,Z_last,50])
-    # z_arr = np.array([ZPA_res,Z_last,50])
-    # now calculate the inverters
+
     J_arr = np.array(
         [calculate_middle_inverter_constant(dw, g_arr[i + 1], g_arr[i + 2], z_arr[i], z_arr[i + 1]) for i in
          range(len(g_arr) - 2)]
-        #  calculate_middle_inverter_constant(dw, g_arr[2], g_arr[3], z_arr[1], z_arr[2]),
-        #  calculate_middle_inverter_constant(dw, g_arr[3], g_arr[4], z_arr[2], z_arr[3]),
-        #  calculate_middle_inverter_constant(dw, g_arr[4], g_arr[5], z_arr[3], z_arr[4]),
     )
     # J_arr[0] /= np.sqrt(dw)
     J_arr[-1] /= np.sqrt(dw)
