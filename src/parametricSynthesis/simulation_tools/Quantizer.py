@@ -115,7 +115,7 @@ def g3_from_lj_n_and_zpeff(Lj, N, Zpeff, LC_override = None):
 
     return g3/hbar
 
-def g3_from_c2_c3_cap_omega(c2, c3, cap, omega, M = 1):
+def g3_from_c2_c3_cap_omega(c2, c3, cap, omega, M):
     '''
     starting at the unitless nonlinear expansion coefficients of the squid hamiltonian with c2 and c3
     takes in the capacitance of the array and the frequency of the array mode and returns the g3
@@ -126,6 +126,6 @@ def g3_from_c2_c3_cap_omega(c2, c3, cap, omega, M = 1):
     phi0 = hbar / 2 / e
     Ec = e**2/2/cap
     p = 1 #this clearly needs to change
-    g3 = 1/6*p**2/M*c3/c2*np.sqrt(e**2/2/cap*hbar*omega)
+    g3 = 1/6*p**2/M*c3/c2*np.sqrt(Ec*hbar*omega)
 
     return g3/hbar
