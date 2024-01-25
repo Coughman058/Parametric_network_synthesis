@@ -12,6 +12,7 @@ def get_active_network_prototypes():
     :return: dictionary of the active network prototypes
     """
     active_network_prototypes = dict(
+        N2_Butter_20dB=np.array([ 1.0, 0.4085, 0.2343, 1.1055]),
         N2_Cheby_20dB_R05 = np.array([1.0, 0.3184, 0.1982, 1.1055]),
         N2_Leg_20dB_R05 = np.array([1.0, 0.3105, 0.1868, 1.1055]),
         N3_Butter_20dB = np.array([1.0, 0.5846, 0.6073, 0.2981, 0.9045]),
@@ -61,7 +62,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
     dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
     first_res_lower_bound = dw*Z0/(g_arr[-1]*g_arr[-2])
-    first_res_upper_bound = 1/(dw)*(g_arr[-3]*z_arr[-3]*g_arr[-1]*z_arr[-1])/(dw*g_arr[-1]*z_arr[-1]+g_arr[-3]*z_arr[-3])
+    first_res_upper_bound = np.sqrt()
     print("first resonator impedance must be between {} and {}".format(first_res_lower_bound,first_res_upper_bound))
     # np.array([ZPA_res,20,20,Z_last,50])
     # z_arr = np.array([ZPA_res,Z_last,50])
@@ -88,7 +89,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         if mod_factor<0:
             raise Exception(f"Capacitor modification <0, \nJ = {J_arr[-1]}, Z = {z_arr[-1]}"
                             "")
-        print("maximum impedance of external resonator: ", 1/J_arr[-1])
+        # print("maximum impedance of external resonator: ", 1/J_arr[-1])
         CC_arr = np.copy(CC_arr_raw)
         CC_arr[-1] = CC_arr[-1]/np.sqrt(mod_factor)
         CC_arr_comp = np.pad(CC_arr, 1)
