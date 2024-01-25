@@ -60,7 +60,9 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         elim_inverter = False
 
     dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
-    print("Fractional Bandwidth limit of the chosen circuit: ", dw_limit)
+    first_res_lower_bound = dw*Z0/(g_arr[-1]*g_arr[-2])
+    first_res_upper_bound = 1/(dw)*(g_arr[-3]*z_arr[-3]*g_arr[-1]*z_arr[-1])/(dw*g_arr[-1]*z_arr[-1]+g_arr[-3]*z_arr[-3])
+    print("first resonator impedance must be between {} and {}".format(first_res_lower_bound,first_res_upper_bound))
     # np.array([ZPA_res,20,20,Z_last,50])
     # z_arr = np.array([ZPA_res,Z_last,50])
     # now calculate the inverters
