@@ -4,7 +4,7 @@ from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
 # from tensorwaves.function.sympy import fast_lambdify
 from ..simulation_tools.Quantizer import find_modes_from_input_impedance, mode_results_to_device_params
-
+from scipy.optimize import newton
 
 def get_active_network_prototypes():
     """
@@ -62,7 +62,12 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
     dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
     first_res_lower_bound = dw*Z0/(g_arr[-1]*g_arr[-2])
-    first_res_upper_bound = np.sqrt()
+    rootsolve = lambda zsolve: zsolve-1/(np.sqrt(dw*(1-z_arr[-1]*dw/(zsolve*g_arr[-2]*g_arr[-3]))/(z_arr[-1]*z_arr[-2]*g_arr[-1]*g_arr[-2]))+dw/(np.sqrt(z_arr[-3]*z_arr[-2]*g_arr[-3]*g_arr[-2])))
+    try:
+        first_res_upper_bound = newton(rootsolve, p0 = ZPA_res, maxiter = 10000)[0]
+    except RuntimeError:
+        print("unable to find resonator upper bound")
+        first_res_upper_bound = 1e10
     print("first resonator impedance must be between {} and {}".format(first_res_lower_bound,first_res_upper_bound))
     # np.array([ZPA_res,20,20,Z_last,50])
     # z_arr = np.array([ZPA_res,Z_last,50])
