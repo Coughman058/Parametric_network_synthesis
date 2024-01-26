@@ -801,6 +801,19 @@ class Network:
         ax.set_title("Admittance from inverter")
         plt.show()
 
+        passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
+                                              1 / self.passive_impedance_seen_from_core_mode(add_index=0).subs(
+                                                  self.net_subs))
+        passive_omega_arr = np.linspace(self.omega0_val - 2 * np.pi * 1e9 * omega_scale,
+                                        self.omega0_val + 2 * np.pi * 1e9 * omega_scale, 1001)
+        fig, ax = plt.subplots()
+        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
+        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
+        ax.grid()
+        ax.legend()
+        ax.set_title("Admittance from array resonator")
+        plt.show()
+
         passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
                                      self.passive_impedance_seen_from_core_mode().subs(self.net_subs))
         # passive_omega_arr = 2 * np.pi * np.linspace(3e9, 11e9, 1001)
