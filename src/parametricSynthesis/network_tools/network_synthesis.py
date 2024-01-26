@@ -789,10 +789,10 @@ class Network:
             res_params_list.append(res_params)
         return res_list, res_params_list
 
-    def filter_impedance_analysis(self):
+    def filter_impedance_analysis(self, omega_scale = 1):
         passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
                                      1 / self.passive_impedance_seen_from_inverter(add_index=0).subs(self.net_subs))
-        passive_omega_arr = np.linspace(self.omega0_val-2*np.pi*1e9, self.omega0_val+2*np.pi*1e9, 1001)
+        passive_omega_arr = np.linspace(self.omega0_val-2*np.pi*1e9*omega_scale, self.omega0_val+2*np.pi*1e9*omega_scale, 1001)
         fig, ax = plt.subplots()
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
