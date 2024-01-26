@@ -782,7 +782,7 @@ class Network:
         plt.show()
 
         passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
-                                     self.passive_impedance_seen_from_array(add_index=0).subs(self.net_subs))
+                                     self.passive_impedance_seen_from_array(add_index=-1).subs(self.net_subs))
         # passive_omega_arr = 2 * np.pi * np.linspace(3e9, 11e9, 1001)
         fig, ax = plt.subplots()
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
@@ -792,7 +792,7 @@ class Network:
         print("Quality factor computed with Re[Z_ext]/Z_res: ", (passive_Z_func_from_array(self.omega0_val)).real / self.Z[0])
         # ax.set_ylim(0, 500)
         ax.grid()
-        ax.set_title("Impedance seen from array")
+        ax.set_title("Impedance seen from array resonator")
         ax.legend()
         plt.show()
 
