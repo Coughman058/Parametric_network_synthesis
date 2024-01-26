@@ -113,7 +113,7 @@ def g3_from_lj_n_and_zpeff(Lj, N, Zpeff, LC_override = None):
 
     g3 = phi_zpf**3*c3_max
 
-    return g3/hbar
+    return g3/hbar/2/np.pi
 
 def g3_from_c2_c3_cap_omega(c2, c3, cap, omega, M):
     '''
@@ -128,4 +128,4 @@ def g3_from_c2_c3_cap_omega(c2, c3, cap, omega, M):
     p = 1 #this clearly needs to change
     g3 = 1/6*p**2/M*c3/c2*np.sqrt(Ec*hbar*omega)
 
-    return g3/hbar
+    return g3/hbar/2/np.pi
