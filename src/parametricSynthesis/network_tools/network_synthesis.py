@@ -769,3 +769,30 @@ class Network:
             res_params_list.append(res_params)
         return res_list, res_params_list
 
+    def filter_impedance_analysis(self):
+        passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
+                                     1 / self.passive_impedance_seen_from_inverter(add_index=0).subs(self.net_subs))
+        passive_omega_arr = np.linspace(self.omega0_val-2*np.pi*1e9, self.omega0_val+2*np.pi*1e9, 1001)
+        fig, ax = plt.subplots()
+        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
+        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
+        ax.grid()
+        ax.legend()
+        ax.set_title("Admittance from inverter")
+        plt.show()
+
+        passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
+                                     self.passive_impedance_seen_from_array(add_index=0).subs(self.net_subs))
+        passive_omega_arr = 2 * np.pi * np.linspace(3e9, 11e9, 1001)
+        fig, ax = plt.subplots()
+        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
+        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).imag, label='imag')
+        print("Real impedance seen on-resonance: ", (passive_Z_func_from_array(self.omega0_val)).real)
+        print("Imaginary impedance seen on-resonance: ", (passive_Z_func_from_array(self.omega0_val)).imag)
+        print("Quality factor computed with Re[Z_ext]/Z_res: ", (passive_Z_func_from_array(self.omega0_val)).real / self.Z[0])
+        # ax.set_ylim(0, 500)
+        ax.grid()
+        ax.set_title("Impedance seen from array")
+        ax.legend()
+        plt.show()
+
