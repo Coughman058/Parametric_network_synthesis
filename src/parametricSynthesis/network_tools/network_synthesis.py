@@ -728,7 +728,7 @@ class Network:
             negative_first_cap_symbol = sp.symbols('C_comp')
             negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
             ABCD_comp = negative_first_cap.ABCDshunt()
-            self.net_subs.append(negative_first_cap_symbol, negative_first_cap.val)
+            self.net_subs.append((negative_first_cap_symbol, negative_first_cap.val))
             ABCD_total = ABCD * ABCD_comp
         else:
             ABCD_total = ABCD
