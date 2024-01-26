@@ -717,13 +717,13 @@ class Network:
         Z = abcd_to_z(ABCD, self.Z0)
         return Z[0,0]
 
-    def passive_impedance_seen_from_array(self, add_index=0):
+    def passive_impedance_seen_from_core_mode(self, add_index=0):
         '''
         This function calculates the impedance seen from the array port
-        of the network, without including the array inductance
+        of the network, without including the array inductance.
         '''
 
-        ABCD = self.total_passive_ABCD(array=False, add_index = add_index)
+        ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index)
         if self.Ftype == 'cap_cpld_lumped':
             negative_first_cap_symbol = sp.symbols('C_comp')
             negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
@@ -733,6 +733,17 @@ class Network:
         else:
             ABCD_total = ABCD
         Z = abcd_to_z(ABCD_total, self.Z0)
+        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
+
+    def passive_impedance_seen_from_array(self, add_index = 0):
+        '''
+        This function calculates the impedance seen from the array port
+        of the network including the array inductance
+        '''
+        ABCD = self.total_passive_ABCD(array=False, add_index = add_index)
+
+        Z = abcd_to_z(ABCD, self.Z0)
+
         return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
 
     def passive_impedance_seen_from_inverter(self, add_index = 0):
@@ -791,7 +802,7 @@ class Network:
         plt.show()
 
         passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
-                                     self.passive_impedance_seen_from_array(add_index=-1).subs(self.net_subs))
+                                     self.passive_impedance_seen_from_core_mode().subs(self.net_subs))
         # passive_omega_arr = 2 * np.pi * np.linspace(3e9, 11e9, 1001)
         fig, ax = plt.subplots()
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
