@@ -25,39 +25,39 @@ dep_var_num = 2
 # fig, axs = pi.display_interpolation_result(interpfuncs, testfile_1d, optimization=opt_res_arr, exclude_column = cols_to_exclude)
 # plt.show()
 
-#simultaneous optimization, 2d
-# goals = [80, 7e9]
-# cols_to_exclude = [0,1]
-# primary_cols = [0,2]
-# #find a pair here, then take the length and hold it constant
-# interpfuncs = pi.interpolate_nd_hfss_mgoal_res(testfile_3D_with_fixed_gap, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
-# print("Interpolation successful")
-# opt_res_vals = pi.optimize_for_goal(interpfuncs, goals, optimize_all=True)[0]
-# # opt_res_vals = [res.x for res in opt_res]
-# display_funcs = interpfuncs
-# print("Optimization successful")
-# print("opt_res_arr",opt_res_vals)
-# fig, axs = pi.display_interpolation_result(display_funcs, testfile_3D_with_fixed_gap,
-#                                            optimization=[opt_res_vals, opt_res_vals],
-#                                            exclude_column = cols_to_exclude)
-# plt.show()
-
-#constrained optimization, 3d
-cols_to_exclude = [1]
-primary_cols = [0,2]
+# simultaneous optimization, 2d
 goals = [40, 7e9]
+cols_to_exclude = [0,1]
+primary_cols = [0,1]
 #find a pair here, then take the length and hold it constant
-interpfuncs = pi.interpolate_nd_hfss_mgoal_res(testfile_3d, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
+interpfuncs = pi.interpolate_nd_hfss_mgoal_res(testfile_3d_with_fixed_gap, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
 print("Interpolation successful")
 opt_res_vals = pi.optimize_for_goal(interpfuncs, goals, optimize_all=True)[0]
+# opt_res_vals = [res.x for res in opt_res]
 display_funcs = interpfuncs
 print("Optimization successful")
 print("opt_res_arr",opt_res_vals)
-fig, axs = pi.display_interpolation_result(display_funcs, testfile_3d,
+fig, axs = pi.display_interpolation_result(display_funcs, testfile_3d_with_fixed_gap,
                                            optimization=[opt_res_vals, opt_res_vals],
-                                           exclude_column = cols_to_exclude,
-                                           primary_cols = primary_cols,
-                                           plot_constrained=True)
+                                           exclude_column = cols_to_exclude)
 plt.show()
+
+#constrained optimization, 3d
+# cols_to_exclude = [1]
+# primary_cols = [0,2]
+# goals = [40, 7e9]
+# #find a pair here, then take the length and hold it constant
+# interpfuncs = pi.interpolate_nd_hfss_mgoal_res(testfile_3d, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
+# print("Interpolation successful")
+# opt_res_vals = pi.optimize_for_goal(interpfuncs, goals, optimize_all=True)[0]
+# display_funcs = interpfuncs
+# print("Optimization successful")
+# print("opt_res_arr",opt_res_vals)
+# fig, axs = pi.display_interpolation_result(display_funcs, testfile_3d,
+#                                            optimization=[opt_res_vals, opt_res_vals],
+#                                            exclude_column = cols_to_exclude,
+#                                            primary_cols = primary_cols,
+#                                            plot_constrained=True)
+# plt.show()
 
 breakpoint()
