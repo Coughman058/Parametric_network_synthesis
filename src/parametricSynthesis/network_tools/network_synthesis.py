@@ -816,7 +816,7 @@ class Network:
 
         passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
                                      self.passive_impedance_seen_from_core_mode().subs(self.net_subs))
-        # passive_omega_arr = 2 * np.pi * np.linspace(3e9, 11e9, 1001)
+
         fig, ax = plt.subplots()
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).imag, label='imag')
