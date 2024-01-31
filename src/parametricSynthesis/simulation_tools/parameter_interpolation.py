@@ -6,7 +6,7 @@ Then create a framework that can fit integrated HFSS network results and compare
 
 import pandas as pd
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator
+from scipy.interpolate import LinearNDInterpolator, interp1d
 import matplotlib.pyplot as plt
 from scipy.optimize import minimize
 
@@ -43,7 +43,10 @@ def interpolate_nd_hfss_mgoal_res(df,
             ivarcpls = np.delete(ivarcpls, exclude_columns, axis = 1)
             print("new cols:", ivarcpls)
         dvarlist = df.to_numpy()[:,-dep_var_num+i]
-        interpfunc = LinearNDInterpolator(ivarcpls, dvarlist)
+        try:
+            interpfunc = LinearNDInterpolator(ivarcpls, dvarlist)
+        except ValueError: #this happens if it is a 1d sweep, then we need interp1d
+            interpfunc = interp1d(ivarcpls[:,0], dvarlist)
         interpfuncs.append(interpfunc)
     return interpfuncs
 
@@ -77,19 +80,25 @@ def display_interpolation_result(interpfuncs, df, exclude_column = None, optimiz
         goalname = goalnames[j]
         opt_res = optimization[j]
         # print("Displaying interpolation result for", goalname, "as function of", ivarnames)
-        if interpfunc.points[0].size == 1: #1d sweep
-            x = np.linspace(np.min(interpfunc.points), np.max(interpfunc.points), 1001)
+        try:
+            nd = interpfunc.points[0].size
+        except AttributeError: #interp1d vs linearNdinterpolator
+            nd = 1
+        if nd == 1: #1d sweep
+            x = np.linspace(np.min(interpfunc.x), np.max(interpfunc.x), 1001)
             y = interpfunc(x)
             ax.plot(x,y)
             ax.set_xlabel(varnames[0])
             ax.set_ylabel(goalname)
             if len(optimization) > 0:
-                ax.scatter(opt_res[0], opt_res[1], color='r')
+                print(opt_res)
+                ax.scatter(opt_res[0], interpfunc(opt_res[0]), color='r')
                 ax.set_title(goalname + f'\nopt is {interpfunc(opt_res)}\nat {opt_res}')
+                ax.grid()
             else:
                 ax.set_title(goalname)
 
-        elif interpfunc.points[0].size == 2:
+        elif nd == 2:
             x = np.linspace(np.min(interpfunc.points[:,0]), np.max(interpfunc.points[:,0]), 101)
             y = np.linspace(np.min(interpfunc.points[:,1]), np.max(interpfunc.points[:,1]), 101)
             X, Y = np.meshgrid(x,y)
@@ -145,33 +154,26 @@ def display_interpolation_result(interpfuncs, df, exclude_column = None, optimiz
 
     return fig, axs
 
-def optimize_for_goal(interpfuncs, goal_vals, p0 = None, optimize_all = False, all_weights = None, primary_cols = [0,1]):
+def optimize_for_goal(interpfuncs, goal_vals, p0 = None, all_weights = None):
     '''
     Finds the optimal value of the independent variables to get the goal_val
     '''
     res_arr = []
-    if optimize_all == False:
-        for interpfunc, goal_val in zip(interpfuncs, goal_vals):
-            def goal_diff(x):
-                return np.abs(interpfunc(*x) - goal_val)
-            if p0 is None:
-                p0 = interpfunc.points[interpfunc.points.size//2]
-            res = minimize(goal_diff, p0, method='nelder-mead')
-            res_arr.append(res.x)
-    else:
-        if all_weights is None:
-            all_weights = np.ones(len(interpfuncs))
-        def goal_diff(x):
-            # print("all_weights[0]: ", all_weights[0])
-            to_sum = []
-            for i, interpfunc in enumerate(interpfuncs):
-                cost = np.sum(np.abs(interpfunc(*x) - goal_vals[i])/goal_vals[i])
-                to_sum.append(cost)
-            return np.sum(to_sum)
+    if all_weights is None:
+        all_weights = np.ones(len(interpfuncs))
+    def goal_diff(x):
+        to_sum = []
+        for i, interpfunc in enumerate(interpfuncs):
+            goal = goal_vals[i]
+            cost = np.sum(np.abs(interpfunc(*x) - goal)*all_weights[i]/goal)
+            to_sum.append(cost)
+        return np.sum(to_sum)
 
-        if p0 is None:
+    if p0 is None:
+        try: #nd guesser
             p0 = interpfuncs[0].points[len(interpfuncs[0].points) // 2]
-        res = minimize(goal_diff, p0, method='nelder-mead', options = {'tol': 1e-6})
-        # print(res
-        res_arr.append(res.x)
+        except AttributeError: #1d guesser
+            p0 = interpfuncs[0].x[len(interpfuncs[0].x) // 2]
+    res = minimize(goal_diff, p0, method='nelder-mead', options = {'tol': 1e-6})
+    res_arr.append(res.x)
     return res_arr
