@@ -47,17 +47,23 @@ for net_type, linestyle in zip(net_types, linestyles):
                             label_prepend='pumped mutual ',
                             debug = True);
 ax.legend(bbox_to_anchor = (1,1), ncol = 3)
+fig.suptitle("Gain: Ideal")
 
 #let's grab that impedance function looking from the inverter, we will use this to verify the hfss simulation
 passive_Z_func_from_inv = sp.lambdify([net.omega_from_inverter],
-                                     net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs))
+                                      net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs))
 Z_fig, Z_ax = plt.subplots()
+Z_fig.suptitle('Impedance seen from inverter')
 omega_arr = 2*np.pi*np.linspace(5e9, 9e9, 10001)
-Z_ax.plot(omega_arr/2/np.pi/1e9, passive_Z_func_from_inv(omega_arr))
+Z_ax.plot(omega_arr/2/np.pi/1e9, passive_Z_func_from_inv(omega_arr).real, label = 'ideal, real', linestyle = 'dashed')
+Z_ax.plot(omega_arr/2/np.pi/1e9, passive_Z_func_from_inv(omega_arr).imag, label = 'ideal, imag', linestyle = 'dashed')
+Z_ax.set_xlabel('Frequency (GHz)')
+Z_ax.set_ylabel('Impedance (Ohms)')
+Z_ax.set_ylim(-100, 100)
 
 
 filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\01_from_interp_opt.s2p"
-filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\CC_425.s2p"
+# filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\CC_425.s2p"
 
 
 L_vals = np.array([0.5])*1e-9
@@ -68,12 +74,15 @@ J_vals = np.array([0.001, 0.025, 0.035, 0.045])
 # omega_arr = 2*np.pi*np.linspace(3e9, 10e9, 100001)
 baseline_dict = dict(zip([filename], [0]))
 
-total_data_baseline, HFSS_sweep_sims = sweep_from_filelist(baseline_dict, 'baseline', L_vals, J_vals, 2*np.pi*7*1e9, 0.075, omega_arr = omega_arr)
+total_data_baseline, HFSS_sweep_sims = sweep_from_filelist(baseline_dict, 'baseline', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
 
 HFSS_sweep_to_examine = HFSS_sweep_sims[0]
 HFSS = HFSS_sweep_to_examine
 
 z_from_inv = HFSS.find_p2_input_impedance(L_squid, omega_arr)
+Z_ax.plot(omega_arr/2/np.pi/1e9, z_from_inv.real, label = 'HFSS, real')
+Z_ax.plot(omega_arr/2/np.pi/1e9, z_from_inv.imag, label = 'HFSS, imag')
+Z_ax.legend()
 #now we need to look at this versus the ideal model.
 
 # mode_find_omega_arr = np.linspace(1e9, 14e9, 1001)*2*np.pi
@@ -81,7 +90,6 @@ z_from_inv = HFSS.find_p2_input_impedance(L_squid, omega_arr)
 #
 L_arr = np.linspace(0.3e-9, 0.8e-9, 11)
 modeResult = HFSS.modes_as_function_of_inductance(L_arr, omega_arr, Z0=50)
-
 
 fig, ax = plt.subplots()
 mode_filt = modeResult.omega_arr < 2*np.pi*8e9
