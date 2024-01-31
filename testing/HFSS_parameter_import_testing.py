@@ -6,13 +6,13 @@ from parametricSynthesis.simulation_tools import parameter_interpolation as pi
 import matplotlib.pyplot as plt
 plt.ioff()
 
-testfile_3d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\20240129_tlin_sweep_sa_no_wb_oneloop.csv")
-testfile_3d_with_fixed_gap = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\20240129_tlin_sweep_sa_oneloop_fixed_gap.csv")
-testfile_2d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\tlineZo_cpw_width_gap_freq_Sa_NoWirebond.csv")
-testfile_1d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\tlineZo_Sa_NoWirebond.csv")
+# testfile_3d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\20240129_tlin_sweep_sa_no_wb_oneloop.csv")
+# testfile_3d_with_fixed_gap = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\20240129_tlin_sweep_sa_oneloop_fixed_gap.csv")
+# testfile_2d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\tlineZo_cpw_width_gap_freq_Sa_NoWirebond.csv")
+# testfile_1d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\tlineZo_Sa_NoWirebond.csv")
+resonators_3d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\best\res_sweeps.csv")
+inverters_3d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\best\inv_sweeps.csv")
 dep_var_num = 2
-
-
 
 #independent optimization
 # cols_to_exclude = [1]
@@ -43,17 +43,17 @@ dep_var_num = 2
 # plt.show()
 
 #constrained optimization, 3d
-cols_to_exclude = [3]
-primary_cols = [1,2]
-goals = [99, 7e9]
+cols_to_exclude = []
+primary_cols = [0,1]
+goals = [50, 7e9]
 #find a pair here, then take the length and hold it constant
-interpfuncs = pi.interpolate_nd_hfss_mgoal_res(testfile_3d, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
+interpfuncs = pi.interpolate_nd_hfss_mgoal_res(resonators_3d, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
 print("Interpolation successful")
 opt_res_vals = pi.optimize_for_goal(interpfuncs, goals, optimize_all=True)[0]
 display_funcs = interpfuncs
 print("Optimization successful")
 print("opt_res_arr",opt_res_vals)
-fig, axs = pi.display_interpolation_result(display_funcs, testfile_3d,
+fig, axs = pi.display_interpolation_result(display_funcs, resonators_3d,
                                            optimization=[opt_res_vals, opt_res_vals],
                                            exclude_column = cols_to_exclude,
                                            primary_cols = primary_cols,
