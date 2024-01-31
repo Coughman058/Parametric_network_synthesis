@@ -66,7 +66,7 @@ class InterpolatedNetworkWithInverterFromFilename:
         self.signal_inductor = self.inverter.signal_inductor
         self.signal_inductor_ABCD_func_ = sp.lambdify([self.signal_inductor.omega_symbol, self.signal_inductor.symbol],
                                                       self.signal_inductor.ABCDshunt())
-        inverter_total_abcd = self.inverter.abcd_signal_inductor_shunt() * self.inverter.inverter_shunt() * self.inverter.abcd_idler_inductor_shunt()
+        inverter_total_abcd = self.inverter.abcd_signal_inductor_shunt() * self.inverter.abcd_inverter_shunt() * self.inverter.abcd_idler_inductor_shunt()
         self.inverter_ABCD = inverter_total_abcd.subs(omega_idler, omega_signal-2*self.omega0_val)#this makes it totally degenerate
 
     def ind_abcd_mtx_func(self, L_arr, omega_arr):
@@ -176,7 +176,7 @@ class InterpolatedNetworkWithInverterFromFilename:
 
         return port1_input_impedance
 
-    def modes_as_function_of_inductance(self, l_arr, omega_arr, debug=False, maxiter = 10000):
+    def modes_as_function_of_inductance(self, l_arr, omega_arr, debug=False, maxiter = 10000, Z0 = 50):
         '''
         Takes in an array of inductance values and frequencies
         returns the modes as a function of the inductance of the array inductor. In the format
@@ -187,13 +187,73 @@ class InterpolatedNetworkWithInverterFromFilename:
         res_params_list = []
         for l_val in l_arr:
             if debug: print("Inductance value: ", l_val * 1e12, " pH")
-            z_arr = self.find_p2_input_impedance(l_val, omega_arr, Z0=50)
+            z_arr = self.find_p2_input_impedance(l_val, omega_arr, Z0=Z0)
             res = find_modes_from_input_impedance(z_arr, omega_arr, debug=debug, maxiter = maxiter)
             res_params = mode_results_to_device_params(res)
-            res_list.append(res)
-            res_params_list.append(res_params)
-        return res_list, res_params_list
+            if len(res) != 0:
+                res_list.append(res)
+                res_params_list.append(res_params)
+        return ModeResult(l_arr, res_list, res_params_list)
 
+@dataclass
+class ModeResult:
+    ivar: np.ndarray #the variable that was swept over
+    res: list
+    '''
+    the modes found at each value of the ivar, this can have variable first dimension N, 
+    but has second dimension M shaped from the result of find_modes_from_input_impedance
+    '''
+    res_params: list
+    '''
+    the mode parameters found at each value of the ivar, this can have variable first dimension N,
+    but has second dimension M shaped from the result of mode_results_to_device_params
+    '''
+    def __post_init__(self):
+        # shape of mode_results is NxM where N is number of parameters, M is number of modes
+        # make everything into 1d arrays, then filter afterwards
+        L_list = []
+        omega_list = []
+        Ceff_list = []
+        Leff_list = []
+        Zpeff_list = []
+        Q_list = []
 
+        for L, modes, mode_params in zip(self.ivar, self.res, self.res_params):
+            mode_result_freqs = modes[0]
+            # print(mode_result_freqs)
+            mode_result_Qs = mode_params[0]
+            mode_result_Cs = mode_params[1]
+            mode_result_Ls = mode_params[2]
+            # print(mode_result_Ls)
+            mode_result_Zpeffs = mode_params[3]
 
+            L_list.append(L * np.ones_like(mode_result_freqs))
+            omega_list.append(mode_result_freqs)
+            Ceff_list.append(mode_result_Cs)
+            Leff_list.append(mode_result_Ls)
+            Q_list.append(mode_result_Qs)
+            Zpeff_list.append(mode_result_Zpeffs)
 
+        self.ivar_arr = np.hstack(L_list)
+        self.omega_arr = np.hstack(omega_list)
+        self.Ceff_arr = np.hstack(Ceff_list)
+        self.Leff_arr = np.hstack(Leff_list)
+        self.Zpeff_arr = np.hstack(Zpeff_list)
+        self.Q_arr = np.hstack(Q_list)
+        # for i in range(self.ivar.size):
+        #     if len(self.mode_res_arr[i][0]) != 0:
+        #         self.ivar_cleaned.append(self.ivar[i])
+        #         self.mode_res_arr_cleaned.append(np.array(self.mode_res_arr[i]))
+        #         self.mode_params_arr_cleaned.append(np.array(self.mode_params_arr[i]))
+        #         self.mode_res_dict[self.ivar[i]] = dict(
+        #             zip(
+        #             [i for i in range(len(self.mode_res_arr[i]))],
+        #             np.array(self.mode_res_arr[i]).T
+        #             )
+        #         )
+        #         self.mode_params_dict[self.ivar[i]] = dict(
+        #             zip(
+        #                 [i for i in range(len(self.mode_params_arr[i]))],#this gives each mode an index
+        #                 np.array(self.mode_params_arr[i]).T
+        #             )
+        #         )

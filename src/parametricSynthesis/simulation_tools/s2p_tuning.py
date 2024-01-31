@@ -39,9 +39,9 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
     for L in L_vals:
       for J in J_vals:
         for sweep_val, HFSS in zip(sweep_vals, HFSS_sweep_sims):
-          L_arr = L*np.ones(omega_arr.size)
-          Jpa_arr = J*np.ones(omega_arr.size)
-          Smtx_res = HFSS.evaluate_smtx(L_arr, Jpa_arr, omega_arr)
+          Smtx_res = HFSS.evaluate_smtx(L, J, omega_arr)
+          L_arr = L * np.ones(omega_arr.size)
+          Jpa_arr = J * np.ones(omega_arr.size)
           data = pd.DataFrame({'Signal Frequency (GHz)': omega_arr/2/np.pi/1e9,
                                 'Array Inductance (nH)': L_arr*1e9,
                                 'Inversion Rate': Jpa_arr,
