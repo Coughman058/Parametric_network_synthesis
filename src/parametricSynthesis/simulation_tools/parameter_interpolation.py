@@ -110,8 +110,8 @@ def display_interpolation_result(interpfuncs, df, exclude_column = None, optimiz
             print(f"{ivarnames} = {opt_res}")
             if plot_constrained:
                 print(f"Plotting constrained sweep for simultaneous optimization")
-                constrained_vars = [varnames[i] for i in range(len(varnames)) if i not in primary_cols]
-                constrained_vals = [opt_res[i] for i in range(len(opt_res)) if i not in primary_cols]
+                constrained_vars = [varnames[i] for i in range(len(varnames)) if i not in primary_cols and i < len(opt_res-dep_var_num)]
+                constrained_vals = [opt_res[i] for i in range(len(opt_res)) if i not in primary_cols and i < len(opt_res-dep_var_num)]
                 print(f"Constrained variables: {constrained_vars} = {constrained_vals}")
                 def constrained_interpfunc(x1, x2, primary_cols = primary_cols):
                     input_arr = []
