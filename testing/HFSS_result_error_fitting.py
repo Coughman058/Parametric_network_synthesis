@@ -40,7 +40,6 @@ ax.grid()
 for net_type, linestyle in zip(net_types, linestyles):
   net.gen_net_by_type(net_type, active = True, core_inductor = False, method = 'pumped_mutual',
                       tline_inv_Z_corr_factor = tline_corr_factor, use_approx = False) #0.945
-  net_subs_pre_scattering = net.net_subs
   fig = net.plot_scattering(f_arr_GHz,
                             linestyle = linestyle,
                             fig = fig,
@@ -56,8 +55,20 @@ fig.suptitle("Gain: Ideal")
 #let's grab that impedance function looking from the inverter, we will use this to verify the hfss simulation
 passive_Z_func_from_inv = sp.lambdify([net.omega_from_inverter],
                                       net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs))
-
+initial_device_fit_guess = []
 breakpoint()
+'''
+we want to lambdify all except the last four things on the net_subs list, 
+which are the characteristic impedance, frequency substitutions and the inductor substitution
+'''
+lambdify_list = []
+for net_sub in net.net_subs_before_idler[:-3]:
+    var, guess = net_sub
+    guess = float(guess)
+    #we need to turn these into lambdification variables and an array that corresponds to the initial design fit guess.
+impedance_func_to_fit = net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs_before_idler[-3:])
+net_sub = sp.lambdify([net.omega_from_inverter], net_sub)
+
 Z_fig, Z_ax = plt.subplots()
 Z_fig.suptitle('Impedance seen from inverter')
 omega_arr = 2*np.pi*np.linspace(5e9, 9e9, 10001)

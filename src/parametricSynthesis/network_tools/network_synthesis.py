@@ -523,6 +523,7 @@ class Network:
 
         net_size = self.J.size - 1
         for n in range(net_size + 1):
+
             if n == 0:
                 self.circuit_unit(Ftype, n, net_size, signal_omega_sym,
                                   include_inductor=core_inductor,
@@ -533,13 +534,15 @@ class Network:
                                   include_inductor=True,
                                   tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
                                   use_approx=use_approx)
+            print("net subs at " + str(n))
+            print(self.net_subs)
         #   class DegenerateParametricInverter_Amp:
         # omega0_val: float
         # L: sp.Symbol
         # R_active: sp.Symbol
         # w: float
         # g_arr: np.ndarray
-
+        self.net_subs_before_idler = self.net_subs
         if active == True:
             Jpa_sym = sp.symbols("J_{pa}")
             R_active = sp.symbols('R_{pump}')
