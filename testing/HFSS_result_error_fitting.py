@@ -1,14 +1,8 @@
 from parametricSynthesis import network_tools, drawing_tools, simulation_tools
-import matplotlib.pyplot as plt
-from dataclasses import dataclass
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-import schemdraw.elements as elm
-import schemdraw
-import plotly.express as px
-import pandas as pd
-from scipy.interpolate import interp1d
+from scipy.optimize import minimize
 from parametricSynthesis.simulation_tools.s2p_tuning import sweep_core_inductance_and_inversion_rate_from_filelist as sweep_from_filelist
 '''
 objective of this model is to take in some result from HFSS (which is not what I want) and fit it to the ideal model by 
@@ -55,31 +49,57 @@ fig.suptitle("Gain: Ideal")
 #let's grab that impedance function looking from the inverter, we will use this to verify the hfss simulation
 passive_Z_func_from_inv = sp.lambdify([net.omega_from_inverter],
                                       net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs))
-initial_device_fit_guess = []
-breakpoint()
+
+
 '''
 we want to lambdify all except the last four things on the net_subs list, 
 which are the characteristic impedance, frequency substitutions and the inductor substitution
 '''
+initial_device_fit_guess = []
 lambdify_list = []
-for net_sub in net.net_subs_before_idler[:-3]:
+for net_sub in net.net_subs_before_idler[:-4]:
     var, guess = net_sub
-    guess = float(guess)
+    if var not in lambdify_list:
+        guess = float(guess)
+        lambdify_list.append(var)
+        initial_device_fit_guess.append(guess)
     #we need to turn these into lambdification variables and an array that corresponds to the initial design fit guess.
-impedance_func_to_fit = net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs_before_idler[-3:])
-net_sub = sp.lambdify([net.omega_from_inverter], net_sub)
+lambdify_list.append(net.net_subs_before_idler[-1][0])
+theta_comp = sp.symbols("theta_comp")
+lambdify_list.append(theta_comp)
+initial_device_fit_guess.append(net.net_subs_before_idler[-1][1])
+initial_device_fit_guess.append(np.pi)
+
+impedance_func_to_lambdify = sp.exp(sp.I*theta_comp*net.omega_from_inverter/w0)*net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs_before_idler[-4:-1])
+
+omega_arr = 2*np.pi*np.linspace(5e9, 9e9, 10001)
+
+lambdified_z_func = sp.lambdify(lambdify_list+[net.omega_from_inverter], impedance_func_to_lambdify)
+def impedance_func_to_fit(args):
+    '''
+    this function takes in the arguments, which are fractions of the initial guesses, and outputs the impedance function
+    evaluated at the omega_arr
+    '''
+    input_list = []
+    for i, val in enumerate(args):
+        # print(val)
+        input_list.append(val*np.ones_like(omega_arr))
+    return lambdified_z_func(*input_list, omega_arr)
+
+
+
+# net_sub = sp.lambdify([net.omega_from_inverter], net_sub)
 
 Z_fig, Z_ax = plt.subplots()
 Z_fig.suptitle('Impedance seen from inverter')
-omega_arr = 2*np.pi*np.linspace(5e9, 9e9, 10001)
 Z_ax.plot(omega_arr/2/np.pi/1e9, passive_Z_func_from_inv(omega_arr).real, label = 'ideal, real', linestyle = 'dashed')
 Z_ax.plot(omega_arr/2/np.pi/1e9, passive_Z_func_from_inv(omega_arr).imag, label = 'ideal, imag', linestyle = 'dashed')
 Z_ax.set_xlabel('Frequency (GHz)')
 Z_ax.set_ylabel('Impedance (Ohms)')
-Z_ax.set_ylim(-100, 100)
+Z_ax.set_ylim(-200, 200)
 
 
-filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\01_from_interp_opt.s2p"
+filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\01_from_interp_opt_renorm.s2p"
 # filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\CC_425.s2p"
 
 
@@ -91,29 +111,57 @@ J_vals = np.array([0.001, 0.025, 0.035, 0.045])
 # omega_arr = 2*np.pi*np.linspace(3e9, 10e9, 100001)
 baseline_dict = dict(zip([filename], [0]))
 
-total_data_baseline, HFSS_sweep_sims = sweep_from_filelist(baseline_dict, 'baseline', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+total_data_baseline, HFSS_sweep_sims, HFSS_passive_sweep_sims = sweep_from_filelist(baseline_dict, 'baseline', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
 
+# HFSS_sweep_to_examine = HFSS_passive_sweep_sims[0]
 HFSS_sweep_to_examine = HFSS_sweep_sims[0]
 HFSS = HFSS_sweep_to_examine
 
 z_from_inv = HFSS.find_p2_input_impedance(L_squid, omega_arr)
+# z_from_inv = HFSS.find_p2_input_impedance(omega_arr)
 Z_ax.plot(omega_arr/2/np.pi/1e9, z_from_inv.real, label = 'HFSS, real')
 Z_ax.plot(omega_arr/2/np.pi/1e9, z_from_inv.imag, label = 'HFSS, imag')
+rot_to_zero_im =
+shift = np.exp(-1j*omega_arr*np.pi/4/w0)
+Z_ax.plot(omega_arr/2/np.pi/1e9, (z_from_inv).real, label = 'HFSS, real shifted')
+Z_ax.plot(omega_arr/2/np.pi/1e9, (z_from_inv*np.exp(-1j*np.pi/4)).imag, label = 'HFSS, imag shifted')
 Z_ax.legend()
-#now we need to look at this versus the ideal model.
+#do a fit to the HFSS data using the function we made earlier
+def norm_impedance_goal_function(args):
+    return impedance_func_to_fit([arg*initial_device_fit_guess[i] for i, arg in enumerate(args)])
+def minimize_goal_function(args):
+    return np.sum(np.abs(norm_impedance_goal_function(args).imag - z_from_inv.imag))
+# Z_ax.plot(omega_arr/2/np.pi/1e9, impedance_func_to_fit(*np.array(initial_device_fit_guess)).real, label = 'fit, real')
+# Z_ax.plot(omega_arr/2/np.pi/1e9, impedance_func_to_fit(*np.array(initial_device_fit_guess)).imag, label = 'fit, imag')
+# Z_ax.plot(omega_arr/2/np.pi/1e9, norm_impedance_goal_function(*np.ones_like(initial_device_fit_guess)).real, label = 'fit, real')
+# Z_ax.plot(omega_arr/2/np.pi/1e9, norm_impedance_goal_function(*np.ones_like(initial_device_fit_guess)).imag, label = 'fit, imag')
+# Z_ax.legend()
 
 
-# mode_find_omega_arr = np.linspace(1e9, 14e9, 1001)*2*np.pi
-# roots, reY_at_roots, imYp_at_roots = HFSS.find_modes_from_input_impedance(1.2e-9, mode_find_omega_arr)
+
+# bounds = [(0.9, 1.1) for i in range(len(initial_device_fit_guess)-1)]+[(-1,1)]
+# res = minimize(minimize_goal_function, np.ones_like(initial_device_fit_guess), bounds = bounds, method = 'Nelder-Mead')
+# print("Success?", res.success)
+# for name, val in zip(lambdify_list, res.x):
+#     print("%s: %f" % (name, val))
+# #plot that result as well:
+# Z_ax.plot(omega_arr/2/np.pi/1e9, impedance_func_to_fit((res.x*np.array(initial_device_fit_guess))).real, label = 'fit, real')
+# Z_ax.plot(omega_arr/2/np.pi/1e9, impedance_func_to_fit((res.x*np.array(initial_device_fit_guess))).imag, label = 'fit, imag')
+# Z_ax.legend()
+# # breakpoint()
+# # mode_find_omega_arr = np.linspace(1e9, 14e9, 1001)*2*np.pi
+# # roots, reY_at_roots, imYp_at_roots = HFSS.find_modes_from_input_impedance(1.2e-9, mode_find_omega_arr)
+# #
+# L_arr = np.linspace(0.3e-9, 0.8e-9, 11)
+# modeResult = HFSS.modes_as_function_of_inductance(L_arr, omega_arr, Z0=50)
+# # modeResult = HFSS.modes(omega_arr, Z0=50)
 #
-L_arr = np.linspace(0.3e-9, 0.8e-9, 11)
-modeResult = HFSS.modes_as_function_of_inductance(L_arr, omega_arr, Z0=50)
-
-fig, ax = plt.subplots()
-mode_filt = modeResult.omega_arr < 2*np.pi*8e9
-ax.scatter(modeResult.ivar_arr[mode_filt]*1e12, modeResult.omega_arr[mode_filt]/2/np.pi/1e9)
-ax.set_xlabel('L (pH)')
-ax.set_ylabel('f (GHz)')
-ax.grid()
+# fig, ax = plt.subplots()
+# mode_filt = modeResult.omega_arr < 2*np.pi*8e9
+# ax.scatter(modeResult.ivar_arr[mode_filt]*1e12, modeResult.omega_arr[mode_filt]/2/np.pi/1e9)
+# ax.set_xlabel('L (pH)')
+# ax.set_ylabel('f (GHz)')
+# ax.grid()
+# breakpoint()
 plt.show()
 

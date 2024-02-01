@@ -8,6 +8,7 @@ import numpy as np
 import plotly.graph_objects as go
 from ipywidgets import widgets
 from ..simulation_tools.HFSS_analysis import InterpolatedNetworkWithInverterFromFilename as net_with_inverter
+from ..simulation_tools.HFSS_analysis import InterpolatedNetworkWithoutInverterFromFilename as net_without_inverter
 # L_vals = np.arange(0.5, 1.1, 0.05)*1e-9
 # J_vals = np.arange(0.01, 0.03, 0.001)
 
@@ -28,6 +29,9 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
     filenames_sweep = filenames_dict_with_vals.keys()
     sweep_vals = filenames_dict_with_vals.values()
     L_array_sym, J_array_sim = sp.symbols("L_pa, J_pa")
+    HFSS_sweep_sims_passive = [net_without_inverter(filename=filename, dw=dw_val,
+                                       omega0_val=omega0_val) for filename in filenames_sweep]
+
     HFSS_sweep_sims = [net_with_inverter(filename=filename,
                                        L_sym=L_array_sym,
                                        inv_J_sym=J_array_sim,
@@ -52,7 +56,7 @@ def sweep_core_inductance_and_inversion_rate_from_filelist(filenames_dict_with_v
 
     total_data = pd.concat(data_list, ignore_index = True, axis = 0)
 
-    return total_data, HFSS_sweep_sims
+    return total_data, HFSS_sweep_sims, HFSS_sweep_sims_passive
 
 
 def plotly_1D_sweep(total_data, sweep_val_name = 'HFSS sweep parameter', x_axis_name = 'Signal Frequency (GHz)', y_axis_names = ['S11magDB', 'S21magDB'], yscale = [-5, 35]):

@@ -196,6 +196,108 @@ class InterpolatedNetworkWithInverterFromFilename:
         return ModeResult(l_arr, res_list, res_params_list)
 
 @dataclass
+class InterpolatedNetworkWithoutInverterFromFilename:
+    '''
+    This file takes in an s2p file from HFSS and analyzes the results by finding modes and computing nonlinearities
+    '''
+    filename: str
+    omega0_val: float
+    dw: float
+
+    def __post_init__(self):
+        self.skrf_network = import_s2p(self.filename)
+
+    def evaluate_abcd_mtx(self, omega_arr, active = True):
+        '''
+        returns the ABCD matrix of the network for each inductance, inverter coupling rate, and frequency in the input arrays
+        This can only handle variation over frequency! The inductance and coupling rate must be a single constant
+        '''
+
+        # this will return a 2x2xN matrix of floats, with 1xN input arrays
+
+        self.s2p_net_ABCD_mtx_signal = interpolate_mirrored_abcd_functions(self.skrf_network, omega_arr)
+
+        # these will also return a Nx2x2 matrix of floats, with 1xN input
+
+        # np.matmul needs Nx2x2 inputs to treat the last two as matrices,
+        # so we use moveaxis to rearrange the first and last axis so that
+        # [
+        # [[1,2,3],[4,5,6]]
+        # [[7,8,9],[10,11,12]]
+        # ]
+        # becomes
+        # [
+        # [[1,4],
+        #  [7,10]],
+        # [[2,5],
+        #  [8,11]],
+        # [[3, 6],
+        #  [9,12]],
+        # ]
+
+        # print("Debug: signal inductor ABCD array shape:", signal_inductor_ABCD_array.shape)
+        total_ABCD_mtx_evaluated = self.s2p_net_ABCD_mtx_signal
+
+        # now we have a total Nx2x2 ABCD matrix, but to convert that to a scattering matrix, we need the 2x2xN shape back
+        # so we use moveaxis again
+        self.total_ABCD_mtx_evaluated_reshaped = np.moveaxis(total_ABCD_mtx_evaluated, 0, -1)
+
+        return self.total_ABCD_mtx_evaluated_reshaped
+
+        # now we can convert to S parameters using the helper function I already have
+    def evaluate_smtx(self, omega_arr):
+
+        return abcd_to_s(self.evaluate_abcd_mtx(omega_arr), 50, num = True)
+
+    def find_p2_input_impedance(self, omega_arr, Z0 = 50):
+        '''
+        returns the impedance seen from the inverter
+        (as converted from the ABCD matrix)
+        '''
+        ABCD_mtxs = self.evaluate_abcd_mtx(omega_arr, active = False)
+        self.filterZmtxs = abcd_to_z(ABCD_mtxs, num=True)
+        Z = self.filterZmtxs
+        #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
+        #impedance matrix and the source impedance
+        port2_input_impedance = Z[1,1]-Z[1,0]*Z[0,1]/(Z[0,0]+Z0)
+
+        return port2_input_impedance
+
+    def find_p1_input_impedance(self, omega_arr, Zl = 50):
+        '''
+        returns the impedance seen from the environment
+        (as converted from the ABCD matrix)
+        '''
+        ABCD_mtxs = self.evaluate_abcd_mtx(omega_arr, active = False)
+        self.filterZmtxs = abcd_to_z(ABCD_mtxs, num=True)
+        Z = self.filterZmtxs
+        #to get modes from BBQ, we need to have the full impedance as seen from the inverter, which you can get from the
+        #impedance matrix and the source impedance
+        port1_input_impedance = Z[0,0]-Z[1,0]*Z[0,1]/(Z[1,1]+Zl)
+
+        return port1_input_impedance
+
+    def modes(self, omega_arr, debug=False, maxiter = 10000, Z0 = 50):
+        '''
+        Takes in an array of inductance values and frequencies
+        returns the modes as a function of the inductance of the array inductor. In the format
+        of the return of find_modes_from_input_impedance
+        '''
+
+        res_list = []
+        res_params_list = []
+        l_arr = [0]
+        for l_val in l_arr:
+            if debug: print("Inductance value: ", l_val * 1e12, " pH")
+            z_arr = self.find_p2_input_impedance(l_val, omega_arr, Z0=Z0)
+            res = find_modes_from_input_impedance(z_arr, omega_arr, debug=debug, maxiter = maxiter)
+            res_params = mode_results_to_device_params(res)
+            if len(res) != 0:
+                res_list.append(res)
+                res_params_list.append(res_params)
+        return ModeResult(l_arr, res_list, res_params_list)
+
+@dataclass
 class ModeResult:
     ivar: np.ndarray #the variable that was swept over
     res: list
