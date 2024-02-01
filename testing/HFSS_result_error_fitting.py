@@ -10,6 +10,10 @@ import plotly.express as px
 import pandas as pd
 from scipy.interpolate import interp1d
 from parametricSynthesis.simulation_tools.s2p_tuning import sweep_core_inductance_and_inversion_rate_from_filelist as sweep_from_filelist
+'''
+objective of this model is to take in some result from HFSS (which is not what I want) and fit it to the ideal model by 
+changing all of the circuit parameters. In other words: figure out what's wrong. Then hopefully I can fix it
+'''
 
 #first generate the ideal model that we will be comparing to.
 active_network_prototypes = network_tools.network_synthesis.get_active_network_prototypes()
