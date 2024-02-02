@@ -7,6 +7,10 @@ This module should contain all the tools to do the fillowing tasks:
     4. Calculate input and transfer admittances of the network
     5. Calculate the scattering matrix of the network
 '''
+import sympy as sp
+import numpy as np
+import matplotlib.pyplot as plt
+
 #define all the symbols that I need programtically by defining matrices, these are the betas, kappas, etc.
 # def define_symbol_matrices(ns, num_modes = 10, num_pumps = 10):
 #     '''
@@ -68,8 +72,8 @@ def define_symbols_in_namespace(ns, num_modes = 10, num_pumps = 10):
     pump_det = [('dp%d' % j, sp.symbols('delta%d_p' % j, real=True)) for j in range(num_modes)]
     diag_mMtx_Elements = [('D%d' % j, sp.symbols('Delta%d' % j)) for j in range(num_modes)]
 
-    misc_symbols = [('gamma_m', sp.symbols('gamma_m', real=True)),(g, sp.symbols('gamma'))]
-    gamma_m = sp.symbols('gamma_m', real=True)
+    misc_symbols = [('gamma_m', sp.symbols('gamma_m', real=True)),('g', sp.symbols('gamma'))]
+
     symbols_list = [mMtxElements, kMtxElements, kMtxIntElements, kMtxExtElements, diag_mMtx_Elements, pump_freqs,
                     sig_freqs, mode_freqs, sig_dets, pump_det, filter_deltas, filter_betas, misc_symbols]
     for symbols in symbols_list: ns.update(symbols)
@@ -216,7 +220,7 @@ def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
 #each coupling type has 4 matrix elements except for degenerate gain, which has 2
 
 class Gain:
-    def __init__(self, j, k, num_modes = num_modes, namespace = locals()):
+    def __init__(self, j, k, num_modes = 3, namespace = locals()):
         n = num_modes
         s = namespace['b%d%dg'%(j, k)]
         cpl_mtx = np.zeros([2*num_modes, 2*num_modes], dtype = 'object')
@@ -237,7 +241,7 @@ class Gain:
     def gen_mtx(self):
         return sp.Matrix(self.cpl_mtx)
 class Conv:
-    def __init__(self, j, k, num_modes = num_modes, namespace = locals()):
+    def __init__(self, j, k, num_modes = 3, namespace = locals()):
         n = num_modes
         s = namespace['b%d%dc'%(j, k)]
         cpl_mtx = np.zeros([2*num_modes, 2*num_modes], dtype = 'object')
@@ -254,7 +258,7 @@ class Conv:
         return sp.Matrix(self.cpl_mtx)
 
 class Res:
-    def __init__(self, j, k, num_modes = num_modes, namespace = locals()):
+    def __init__(self, j, k, num_modes = 3, namespace = locals()):
         n = num_modes
         s = namespace['b%d%dr'%(j, k)]
         cpl_mtx = np.zeros([2*num_modes, 2*num_modes], dtype = 'object')
@@ -271,7 +275,7 @@ class Res:
         return sp.Matrix(self.cpl_mtx)
 
 #tools for calculating scattering
-def calculate_scattering_for_config(mMtxN, kMtxN, configs, yrange = None, signal_det_range = 1, pump_det = np.linspace(0,0.5,3), fig = None, plot_pairs = None):
+def calculate_scattering_for_config(mMtxN, kMtxN, configs, pump_det_symbol, signal_det_symbol, yrange = None, signal_det_range = 1, pump_det = np.linspace(0,0.5,3), fig = None, plot_pairs = None):
   num_modes = mMtxN.shape[0]//2
   if fig == None:
     if plot_pairs == None:
@@ -289,8 +293,8 @@ def calculate_scattering_for_config(mMtxN, kMtxN, configs, yrange = None, signal
     axs = np.array(fig.get_axes()).reshape(-1, int(np.sqrt(np.size(fig.get_axes()))))
 
   for config in configs:
-    mMtxNFunc = sp.lambdify([dp0, delta], mMtxN.subs(config))
-    kMtxNFunc = sp.lambdify([dp0, delta], kMtxN.subs(config))
+    mMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], mMtxN.subs(config))
+    kMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], kMtxN.subs(config))
     sMtxNFunc = lambda pump_det, sig_det: 1j*np.matmul(
         np.matmul(kMtxNFunc(pump_det,sig_det),
                   np.linalg.inv(mMtxNFunc(pump_det,sig_det))),
