@@ -10,13 +10,13 @@ def mMtxFromRules(rules_list, mMtx, mode_cutoff = 12):
   mMtxGGCStabBlock = -1*(mMtxGGCStab)[0:mode_cutoff, 0:mode_cutoff]
   # print_latex(mMtxGGCStabBlock)
   return mMtxGGCStabBlock
-def eigenValuesFromRules(rules_list, mMtx = mMtx):
+def eigenValuesFromRules(rules_list, mMtx):
   mMtxGGCStabBlock = mMtxFromRules(rules_list, mMtx = mMtx)
   print("Finding eigenvalues...")
   evals = mMtxGGCStabBlock.eigenvals()
   eval_list = [sp.simplify(-sp.I*eval) for eval in list(evals.keys())];
   return eval_list
-def eigenVectorsFromRules(rules_list, mMtx = mMtx):
+def eigenVectorsFromRules(rules_list, mMtx):
   mMtxGGCStabBlock = mMtxFromRules(rules_list, mMtx = mMtx)
   print("Finding eigenvalues...")
   evecs = mMtxGGCStabBlock.eigenvects()
