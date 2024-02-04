@@ -318,3 +318,72 @@ def calculate_scattering_for_config(mMtxN, kMtxN, configs, pump_det_symbol, sign
   plt.close(fig)
   return fig
 
+def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
+  '''
+  This will eliminate a mode with index k from the mMtx
+  and return a new one with the elementwise formula below
+
+  mMtx[i,j]' = mMtx[i,j] - mMtx[i,k]*mMtx[k,i]/(mMtx[k,k])
+  '''
+  k = mode_index_to_elim
+  mMtx_rank = mMtx.shape[0]
+  mMtx_empty = np.zeros((mMtx_rank, mMtx_rank)).astype(int)
+  mMtx_new = sp.Matrix(mMtx_empty)
+  for i in range(mMtx_rank):
+    for j in range(mMtx_rank):
+      if j!= k and i!=k:
+        mMtx_new[i, j] = mMtx[i,j] - mMtx[i,k]*mMtx[k,j]/(mMtx[k,k])
+  mMtx_new.row_del(k)
+  mMtx_new.col_del(k)
+  return mMtx_new
+
+calc_gamma_m = lambda n, ns: (sp.prod([ns['g%i'%i] for i in range(n)]))**(sp.Rational(1,n))
+
+from sympy import Matrix, print_latex
+def mMtxFromRules(rules_list, mMtx, mode_cutoff = 12):
+  mMtxGGCStab = mMtx.subs(rules_list)
+  #.subs(A, A/g).subs(A02c, A02c/g).subs(A, -A).subs(A02c,-A02c)
+  mMtxGGCStabBlock = -1*(mMtxGGCStab)[0:mode_cutoff, 0:mode_cutoff]
+  display(mMtxGGCStabBlock)
+  # print_latex(mMtxGGCStabBlock)
+  return mMtxGGCStabBlock
+def eigenValuesFromRules(rules_list, mMtx = mMtx):
+  mMtxGGCStabBlock = mMtxFromRules(rules_list, mMtx = mMtx)
+  print("Finding eigenvalues...")
+  evals = mMtxGGCStabBlock.eigenvals()
+  eval_list = [sp.simplify(-sp.I*eval) for eval in list(evals.keys())];
+  return eval_list
+def eigenVectorsFromRules(rules_list, mMtx = mMtx):
+  mMtxGGCStabBlock = mMtxFromRules(rules_list, mMtx = mMtx)
+  print("Finding eigenvalues...")
+  evecs = mMtxGGCStabBlock.eigenvects()
+  return evecs
+def display_eigensystem(evecs_result):
+  for eval in evecs_result:
+    print("----------------------")
+    print("Eigenvalue:")
+    display(sp.simplify(-sp.I*eval[0]))
+    print("Multiplicity: ")
+    display(eval[1])
+    print("Eigenvector")
+    [display(sp.simplify(thing)) for thing in eval[2]]
+    print("----------------------")
+
+
+
+if __name__ == "__main__":
+    #define the namespace
+    ns = locals()
+    define_symbols_in_namespace(ns, num_modes = 3, num_pumps = 3)
+    #define the mode matrix
+    mode_diag = Mode_Diag(3, namespace = ns)
+    mMtx = mode_diag.gen_dmtx()
+    kMtx = mode_diag.gen_kmtx()
+    #add the couplings
+    gain01 = Gain(0, 1, num_modes = 3, namespace = ns)
+    gain12 = Gain(1, 2, num_modes = 3, namespace = ns)
+    conv = Conv(0, 2, num_modes = 3, namespace = ns)
+    mMtx = mMtx + gain01.gen_mtx() + conv.gen_mtx() + gain12.gen_mtx()
+    mMtx = swap_basis_vectors(mMtx, kMtx, [1], [4])
+    #add the filter modes
+    breakpoint()
