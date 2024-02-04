@@ -112,6 +112,8 @@ if __name__ == '__main__':
     r_db = 0.5
     n = 3
 
-    pil = PIL_from_gain(G_db, type = 'legendre', n = n, r_db = r_db)
-    num, den = poly_from_pil(pil)
-    gs = gs_from_poly(num, den)
+    cheby_gs_active = prototype_gs(G_db, type = 'chebyshev', n = n, r_db = r_db)
+    # cheby_gs_passive = prototype_gs(-G_db, type = 'chebyshev', n = n, r_db = r_db)
+
+    # breakpoint()
+
