@@ -275,7 +275,6 @@ def calculate_scattering_for_config(mMtxN, kMtxN, configs, pump_det_symbol, sign
           axs[l].plot(signal_det, 20*np.log10(np.abs(sMtxs[i,:,j,k])))
 
   fig.tight_layout()
-  plt.close(fig)
   return fig
 
 def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
@@ -298,6 +297,7 @@ def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
   return mMtx_new
 
 calc_gamma_m = lambda n, ns: (sp.prod([ns['g%i'%i] for i in range(n)]))**(sp.Rational(1,n))
+gs_to_betas = lambda gs, dw, g0: dw/(2*g0*np.sqrt(gs*np.roll(gs, -1)))[1]
 
 if __name__ == "__main__":
     #define the namespace
