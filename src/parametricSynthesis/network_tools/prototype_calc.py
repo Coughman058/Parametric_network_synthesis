@@ -99,7 +99,13 @@ def gs_from_poly(num, den):
         gs.append(quo.coef[-1].real)
     gs.append(1/quo.coef[0].real)
     print('Calculated gs: ', gs)
-    pass
+    return gs
+
+def prototype_gs(G_db, type = 'chebyshev', n = 3, r_db = 0.5):
+    pil = PIL_from_gain(G_db, type = type, n = n, r_db = r_db)
+    num, den = poly_from_pil(pil)
+    gs = gs_from_poly(num, den)
+    return gs
 
 if __name__ == '__main__':
     G_db = 20
@@ -107,13 +113,5 @@ if __name__ == '__main__':
     n = 3
 
     pil = PIL_from_gain(G_db, type = 'legendre', n = n, r_db = r_db)
-
     num, den = poly_from_pil(pil)
     gs = gs_from_poly(num, den)
-    # print(gs)
-
-    # num, den = poly_from_pil(pil_P)
-
-    breakpoint()
-    #now we can use polynomial long division to extract all of the g coefficients
-    #we can use the coefficients to calculate the inductance and capacitance values
