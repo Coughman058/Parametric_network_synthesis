@@ -5,5 +5,13 @@ setup(
     version='0.5.0',
     packages = find_namespace_packages(where = 'src'),
     package_dir={"": "src"},
-    install_requires=['schemdraw', 'numpy', 'matplotlib', 'scikit-rf', 'plotly', 'sympy', 'ipython', 'ipywidgets']
+    install_requires=['setuptools',
+                      'schemdraw',
+                      'numpy',
+                      'matplotlib',
+                      'scikit-rf',
+                      'plotly',
+                      'sympy',
+                      'ipython',
+                      'ipywidgets']
 )
