@@ -1,6 +1,5 @@
-#this will be a direct port of the stability code that I wrote in colab originally
 '''
-This module should contain all the tools to do the fillowing tasks:
+This module should contain all the tools to do the following tasks:
     1. Given m modes and N couplings, construct a coupled mode matrix M with decay matrix K symbolically
     2. Add filter networks of arbitrary length to the coupled mode matrix M and decay matrix K
     3. Allow for arbitrary inputs to mode couplings in unitless parameters, and convert between these and the physical units
@@ -10,45 +9,6 @@ This module should contain all the tools to do the fillowing tasks:
 import sympy as sp
 import numpy as np
 import matplotlib.pyplot as plt
-
-#define all the symbols that I need programtically by defining matrices, these are the betas, kappas, etc.
-# def define_symbol_matrices(ns, num_modes = 10, num_pumps = 10):
-#     '''
-#     this function will generate the matrices that hold all the components that I need for the coupled mode matrix
-#     All notation should be consistent with Ofer and Joe's synthesis paper
-#     '''
-#     betaMtxPassive = [sp.symbols('beta%d%d_r'%(j, k)) for k in range(num_modes) for j in range(num_modes)]
-#     betaMtxPassiveLabels = ['b%d%dr' % (j, k) for k in range(num_modes) for j in range(num_modes)]
-#
-#     betaMtxActive = [sp.symbols('beta%d%d_g'%(j, k)) for k in range(num_modes) for j in range(num_modes)]
-#     betaMtxActiveLabels = ['b%d%dg' % (j, k) for k in range(num_modes) for j in range(num_modes)]
-#
-#     betaMtxConv = [sp.symbols('beta%d%d_c'%(j, k)) for k in range(num_modes) for j in range(num_modes)]
-#     betaMtxConvLabels = ['b%d%dc' % (j, k) for k in range(num_modes) for j in range(num_modes)]
-#
-#     kMtxElements = [sp.symbols('gamma%d'%j, positive = True) for j in range(num_modes)]
-#     kMtxElementsLabels  = ['g%d'%j for j in range(num_modes)]
-#
-#     kMtxIntElements = [sp.symbols('gamma%d_i'%j, positive = True) for j in range(num_modes)]
-#     kMtxIntElementsLabels  = ['g%di'%j for j in range(num_modes)]
-#
-#     kMtxExtElements = [sp.symbols('gamma%d_e'%j, positive = True) for j in range(num_modes)]
-#     kMtxExtElementsLabels  = ['g%de'%j for j in range(num_modes)]
-#
-#     filter_deltas = [('D%d%d'%(j,k), sp.symbols('Delta%d%d'%(j, k))) for k in range(num_modes) for j in range(num_modes)]
-#     filter_betas = [('b%d%d%d%dr'%(j,k,l,m), sp.symbols('beta%d%d_%d%dr'%(j,k,l,m), positive = True)) for k in range(num_modes) for j in range(num_modes) for l in range(num_modes) for m in range(num_modes)]
-#
-#     mode_freqs = [('omega%d'%j, sp.symbols('omega%d'%j, real = True)) for j in range(num_modes)]
-#     sig_freqs = [('omegas%d'%j, sp.symbols('omega%d_s'%j, real = True)) for j in range(num_modes)]
-#     pump_freqs = [('omegap%d'%j, sp.symbols('omega%d_p'%j, real = True)) for j in range(num_pumps)]
-#
-#     sig_dets = [('ds%d'%j, sp.symbols('delta%d_s'%j)) for j in range(num_modes)]
-#
-#     pump_det = [('dp%d'%j, sp.symbols('delta%d_p'%j, real = True)) for j in range(num_modes)]
-#     diag_mMtx_Elements = [('D%d'%j, sp.symbols('Delta%d'%j)) for j in range(num_modes)]
-#
-#     gamma_m = sp.symbols('gamma_m', real = True)
-#     # symbols_list = [mMtxElements, kMtxElements, kMtxIntElements, kMtxExtElements, diag_mMtx_Elements, pump_freqs, sig_freqs, mode_freqs, sig_dets, pump_det, filter_deltas, filter_betas]
 
 def define_symbols_in_namespace(ns, num_modes = 10, num_pumps = 10):
     # define all the symbols that I need programtically, these are the betas, kappas, etc.
@@ -338,38 +298,6 @@ def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
   return mMtx_new
 
 calc_gamma_m = lambda n, ns: (sp.prod([ns['g%i'%i] for i in range(n)]))**(sp.Rational(1,n))
-
-from sympy import Matrix, print_latex
-def mMtxFromRules(rules_list, mMtx, mode_cutoff = 12):
-  mMtxGGCStab = mMtx.subs(rules_list)
-  #.subs(A, A/g).subs(A02c, A02c/g).subs(A, -A).subs(A02c,-A02c)
-  mMtxGGCStabBlock = -1*(mMtxGGCStab)[0:mode_cutoff, 0:mode_cutoff]
-  display(mMtxGGCStabBlock)
-  # print_latex(mMtxGGCStabBlock)
-  return mMtxGGCStabBlock
-def eigenValuesFromRules(rules_list, mMtx = mMtx):
-  mMtxGGCStabBlock = mMtxFromRules(rules_list, mMtx = mMtx)
-  print("Finding eigenvalues...")
-  evals = mMtxGGCStabBlock.eigenvals()
-  eval_list = [sp.simplify(-sp.I*eval) for eval in list(evals.keys())];
-  return eval_list
-def eigenVectorsFromRules(rules_list, mMtx = mMtx):
-  mMtxGGCStabBlock = mMtxFromRules(rules_list, mMtx = mMtx)
-  print("Finding eigenvalues...")
-  evecs = mMtxGGCStabBlock.eigenvects()
-  return evecs
-def display_eigensystem(evecs_result):
-  for eval in evecs_result:
-    print("----------------------")
-    print("Eigenvalue:")
-    display(sp.simplify(-sp.I*eval[0]))
-    print("Multiplicity: ")
-    display(eval[1])
-    print("Eigenvector")
-    [display(sp.simplify(thing)) for thing in eval[2]]
-    print("----------------------")
-
-
 
 if __name__ == "__main__":
     #define the namespace
