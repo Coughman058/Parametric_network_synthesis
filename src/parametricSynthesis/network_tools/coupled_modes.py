@@ -293,6 +293,7 @@ def calculate_impedance_for_config(mMtxN,
                 for k, pd in enumerate(pump_det):
                     axs[l].plot(signal_det, Yin[i, j, k, :].real, label='Real')
                     axs[l].plot(signal_det, Yin[i, j, k, :].imag, label='Imag')
+                    axs[l].set_title("Yin_%d" % j)
                     axs[l].legend()
 
         else:
@@ -300,6 +301,7 @@ def calculate_impedance_for_config(mMtxN,
                 for k, pd in enumerate(pump_det):
                     axs[l].plot(signal_det, Yin[i, j, k, :].real, label='Real')
                     axs[l].plot(signal_det, Yin[i, j, k, :].imag, label='Imag')
+                    axs[l].set_title("Yin_%d" % j)
                     axs[l].legend()
 
     fig.tight_layout()
@@ -344,11 +346,13 @@ def calculate_scattering_for_config(mMtxN,
           for j in range(2*num_modes):
               for k in range(2*num_modes):
                 axs[j,k].plot(signal_det, 20*np.log10(np.abs(sMtxs[i,:,j,k])), label = "$\delta_p = $"+str(pump_det[i])+" $\kappa$")
+                axs[l].set_title("S%d%d" % (j, k))
     else:
       for i in range(len(sMtxs)):
         for l, pair in enumerate(plot_pairs):
           j,k = pair
           axs[l].plot(signal_det, 20*np.log10(np.abs(sMtxs[i,:,j,k])))
+          axs[l].set_title("S%d%d"%(j,k))
 
   fig.tight_layout()
   return fig
