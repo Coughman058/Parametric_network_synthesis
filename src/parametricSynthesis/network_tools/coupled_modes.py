@@ -331,7 +331,7 @@ def calculate_scattering_for_config(mMtxN,
   for config in configs:
     mMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], mMtxN.subs(config))
     kMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], kMtxN.subs(config))
-    sMtxNFunc = lambda pump_det, sig_det: -1j*np.matmul(
+    sMtxNFunc = lambda pump_det, sig_det: 1j*np.matmul(
         np.matmul(kMtxNFunc(pump_det,sig_det),
                   np.linalg.inv(mMtxNFunc(pump_det,sig_det))),
         kMtxNFunc(pump_det,sig_det)
