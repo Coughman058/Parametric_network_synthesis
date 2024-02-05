@@ -32,7 +32,7 @@ def define_symbols_in_namespace(ns, num_modes = 10, num_pumps = 10):
     pump_det = [('dp%d' % j, sp.symbols('delta%d_p' % j, real=True)) for j in range(num_modes)]
     diag_mMtx_Elements = [('D%d' % j, sp.symbols('Delta%d' % j)) for j in range(num_modes)]
 
-    misc_symbols = [('gamma_m', sp.symbols('gamma_m', real=True)),('g', sp.symbols('gamma'))]
+    misc_symbols = [('gamma_m', sp.symbols('gamma_m', positive=True)),('g', sp.symbols('gamma', positive = True))]
 
     symbols_list = [mMtxElements, kMtxElements, kMtxIntElements, kMtxExtElements, diag_mMtx_Elements, pump_freqs,
                     sig_freqs, mode_freqs, sig_dets, pump_det, filter_deltas, filter_betas, misc_symbols]
