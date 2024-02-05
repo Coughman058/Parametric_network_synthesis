@@ -313,7 +313,7 @@ def calculate_impedance_for_config(mMtxN,
         mMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], mMtxN.subs(config))
         mMtxInv = mMtxN.subs(config).inv()
         kMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], kMtxN.subs(config))
-        gamma_m_val = cm.calc_gamma_m(3, ns).subs(config)
+        gamma_m_val = calc_gamma_m(3, ns).subs(config)
         YinFuncs = []
         for j in range(2 * num_modes):
             mMtxInvComp = sp.simplify(mMtxInv[j, j])
