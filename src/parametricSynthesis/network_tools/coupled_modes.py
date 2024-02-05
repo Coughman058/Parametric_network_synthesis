@@ -235,46 +235,6 @@ class Res:
         return sp.Matrix(self.cpl_mtx)
 
 #tools for calculating scattering
-def calculate_impedance_for_config(mMtxN,
-                                   kMtxN,
-                                   configs,
-                                   pump_det_symbol,
-                                   signal_det_symbol,
-                                   yrange = None, signal_det_range = 1,
-                                   pump_det = np.linspace(0,0.5,3),
-                                   fig = None, plot_indices: list = None, ns = locals()):
-  num_modes = mMtxN.shape[0]//2
-  if fig == None:
-    if plot_indices == None:
-      fig, axs = plt.subplots(ncols = 2*num_modes, figsize = np.array([12,4]), sharey = True)
-      [ax.grid() for ax in axs.flatten()]
-      if yrange is not None:
-        [ax.set_ylim(yrange) for ax in axs.flatten()]
-    else:
-      Nplots = np.shape(plot_indices)[0]
-      fig, axs = plt.subplots(ncols = Nplots, figsize = np.array([4*Nplots,4]), sharey = True)
-      [ax.grid() for ax in axs.flatten()]
-      if yrange is not None:
-        [ax.set_ylim(yrange) for ax in axs.flatten()]
-  else:
-    axs = np.array(fig.get_axes()).reshape(-1, int(np.sqrt(np.size(fig.get_axes()))))
-  for config in configs:
-    mMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], mMtxN.subs(config))
-    # kMtxNFunc = sp.lambdify([pump_det_symbol, signal_det_symbol], kMtxN.subs(config))
-    YinFuncs = [lambda pump_det, sig_det: -0.02*2j*ns['gamma_m']/kMtxN[i,i]*1/(np.linalg.inv(mMtxNFunc(pump_det,sig_det))[i,i])+1 for i in range(2*num_modes)]
-    signal_det = np.linspace(-signal_det_range/2,signal_det_range/2,100)
-    Yin = np.array([[np.array([yInFunc(pd,d) for d in signal_det]) for pd in pump_det] for yInFunc in YinFuncs])
-    if plot_indices == None:
-        for j in range(2*num_modes):
-            axs[j].plot(signal_det, Yin[i,:,j], label = "$\delta_p = $"+str(pump_det[i])+" $\kappa$")
-    else:
-      for i in range(len(Yin)):
-        for l, j in enumerate(plot_indices):
-          axs[l].plot(signal_det, Yin[i,:,j])
-
-  fig.tight_layout()
-  return fig
-
 
 def calculate_impedance_for_config(mMtxN,
                                    kMtxN,
