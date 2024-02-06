@@ -13,5 +13,6 @@ setup(
                       'plotly',
                       'sympy',
                       'ipython',
-                      'ipywidgets']
+                      'ipywidgets',
+                      'tqdm']
 )

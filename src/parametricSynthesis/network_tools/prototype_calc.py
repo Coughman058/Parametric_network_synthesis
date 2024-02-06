@@ -1,6 +1,6 @@
 '''
-Goal of this module is to calculate protype coefficients for a negative resistance network for any gain, and using any
-prototype polynomial. Butterowrth and Chebyshev are the most common, but others are possible.
+Goal of this module is to calculate protoype coefficients for a negative resistance network for any gain, and using any
+prototype polynomial. Butterworth and Chebyshev are the most common, but others are possible.
 '''
 
 import numpy as np
@@ -51,7 +51,7 @@ def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
         pil_L = A * (1 + k2 * Pn ** 2)
         pil_P = pil_L.convert(kind=P)
 
-    # now need to multiply times (i)^n to sitch variables to j*omega
+    # now need to multiply times (i)^n to switch variables to j*omega
     coef_new = []
     for i, coef in enumerate(pil_P.coef):
         coef_new.append(coef * (1j) ** i)
