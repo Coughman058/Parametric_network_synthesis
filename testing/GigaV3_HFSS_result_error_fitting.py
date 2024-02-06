@@ -52,7 +52,6 @@ fig.suptitle("Gain: Ideal")
 passive_Z_func_from_inv = sp.lambdify([net.omega_from_inverter],
                                       net.passive_impedance_seen_from_inverter(add_index=0).subs(net.net_subs))
 
-
 '''
 we want to lambdify all except the last four things on the net_subs list, 
 which are the characteristic impedance, frequency substitutions and the inductor substitution
@@ -96,7 +95,20 @@ inv2_length_dir = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synt
 inv2_length_filenames = [inv2_length_dir +'\\'+ append for append in os.listdir(inv2_length_dir)]
 
 inv2_cpw_width_dir = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\inv2_cpw_width_sweeps"
-inv2_cpw_width_filenames = [inv2_length_dir +'\\'+ append for append in os.listdir(inv2_length_dir)]
+inv2_cpw_width_names = [append for append in os.listdir(inv2_cpw_width_dir)]
+inv2_cpw_width_filenames = [inv2_cpw_width_dir +'\\'+ append for append in os.listdir(inv2_cpw_width_dir)]
+
+inv1_cpw_width_dir = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\inv1_cpw_width_sweeps"
+inv1_cpw_width_names = [append for append in os.listdir(inv1_cpw_width_dir)]
+inv1_cpw_width_filenames = [inv1_cpw_width_dir +'\\'+ append for append in os.listdir(inv1_cpw_width_dir)]
+
+res0_cpw_width_dir = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\res0_cpw_width_sweeps"
+res0_cpw_width_names = [append for append in os.listdir(res0_cpw_width_dir)]
+res0_cpw_width_filenames = [res0_cpw_width_dir +'\\'+ append for append in os.listdir(res0_cpw_width_dir)]
+
+cap_finger_len_dir = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\s2p_files\GigaV3\core_cap_sweeps"
+cap_finger_len_names = [append for append in os.listdir(cap_finger_len_dir)]
+cap_finger_len_filenames = [cap_finger_len_dir +'\\'+ append for append in os.listdir(cap_finger_len_dir)]
 
 L_vals = np.linspace(0.3, 0.7, 9)*1e-9
 J_vals = np.array([0.001, 0.025, 0.035, 0.045])
@@ -111,18 +123,29 @@ inv2_length_dict = dict(zip(inv2_length_filenames, inv_2_lengths))
 inv_2_cpw_widths = [7.8, 8.2, 8.6, 9.0, 9.4, 9.8]
 inv2_cpw_width_dict = dict(zip(inv2_cpw_width_filenames, inv_2_cpw_widths))
 
+inv_1_cpw_widths = [3, 4, 5, 6, 7]
+inv1_cpw_width_dict = dict(zip(inv1_cpw_width_filenames, inv_1_cpw_widths))
 
+res0_cpw_widths = [10.5, 11.5, 12.5, 13.5, 14.5]
+res0_cpw_width_dict = dict(zip(res0_cpw_width_filenames, res0_cpw_widths))
 
-# total_inv2_length, HFSS_sweep_sims, HFSS_passive_sweep_sims = sweep_from_filelist(inv2_length_dict, 'inv2_length', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
-total_inv2_length, HFSS_sweep_sims, HFSS_passive_sweep_sims = sweep_from_filelist(inv2_length_dict, 'inv2_cpw_width', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+cap_finger_lens = [400, 450, 500, 550, 600]
+cap_finger_len_dict = dict(zip(cap_finger_len_filenames, cap_finger_lens))
+
+total_inv2_length, HFSS_sweep_sims_inv2_length, HFSS_passive_sweep_sims_inv2_length = sweep_from_filelist(inv2_length_dict, 'inv2_length', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+total_inv2_cpw_width, HFSS_sweep_sims_inv2_cpw_width, HFSS_passive_sweep_sims_inv2_cpw_width = sweep_from_filelist(inv2_cpw_width_dict, 'inv2_cpw_width', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+total_inv1_cpw_width, HFSS_sweep_sims_inv1_cpw_width, HFSS_passive_sweep_sims_inv1_cpw_width = sweep_from_filelist(inv1_cpw_width_dict, 'inv1_cpw_width', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+total_res0_cpw_width, HFSS_sweep_sims_res0_cpw_width, HFSS_passive_sweep_sims_res0_cpw_width = sweep_from_filelist(res0_cpw_width_dict, 'res0_cpw_width', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+total_cap_finger_len, HFSS_sweep_sims_cap_finger_len, HFSS_passive_sweep_sims_cap_finger_len = sweep_from_filelist(cap_finger_len_dict, 'cap_finger_len', L_vals, J_vals, 2*np.pi*7*1e9, dw, omega_arr = omega_arr)
+
 # HFSS_sweep_to_examine = HFSS_passive_sweep_sims[0]
-HFSS_sweep_to_examine = HFSS_sweep_sims[0]
+# HFSS_sweep_to_examine = HFSS_sweep_sims[0]
 
 def plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep, L_vals, ideal_z_func, omega_arr, title = None):
     '''
     Goal is to plot the impedance seen at the inverter as a function of the inductance of the array and compare with HFSS
     '''
-    Z_fig, [Z_ax_re, Z_ax_im] = plt.subplots(nrows = 1, ncols = 2)
+    Z_fig, [Z_ax_re, Z_ax_im] = plt.subplots(nrows = 1, ncols = 2, figsize = (6,4))
     Z_ax_re.set_title("Real")
     Z_ax_im.set_title("Imaginary")
     Z_fig.suptitle(title)
@@ -132,16 +155,32 @@ def plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep, L_vals, ideal_z_func, omega
               linestyle='dashed', color = 'k')
     for l_squid in L_vals:
         z_from_inv = HFSS_sweep.find_p2_input_impedance(l_squid, omega_arr)
-        Z_ax_re.plot(omega_arr / 2 / np.pi / 1e9, z_from_inv.real, label=f'L_squid = {l_squid}')
-        Z_ax_im.plot(omega_arr / 2 / np.pi / 1e9, z_from_inv.imag, label=f'L_squid = {l_squid}')
+        Z_ax_re.plot(omega_arr / 2 / np.pi / 1e9, z_from_inv.real, label=f'L_squid = {np.round(l_squid*1e12)}')
+        Z_ax_im.plot(omega_arr / 2 / np.pi / 1e9, z_from_inv.imag, label=f'L_squid = {np.round(l_squid*1e12)}')
     for Z_ax in [Z_ax_re, Z_ax_im]:
         Z_ax.set_xlabel('Frequency (GHz)')
         Z_ax.set_ylabel('Impedance (Ohms)')
         Z_ax.set_ylim(-200, 200)
+    Z_ax_im.legend(bbox_to_anchor=(1.05, 1))
+    Z_fig.tight_layout()
 
 #look at the impedance for each parameter
-for value, HFSS_sweep_to_examine in zip(inv_2_lengths, HFSS_sweep_sims):
+
+#inv2_length (not much effect)
+# for value, HFSS_sweep_to_examine in zip(inv_2_lengths, HFSS_sweep_sims_inv2_length):
+#     plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep_to_examine, L_vals, passive_Z_func_from_inv, omega_arr, title = value)
+#inv2_cpw_width (not much difference)
+# for value, HFSS_sweep_to_examine in zip(inv2_cpw_width_names, HFSS_sweep_sims_inv2_cpw_width):
+#     plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep_to_examine, L_vals, passive_Z_func_from_inv, omega_arr, title = value)
+# inv1_cpw_width (notable effect, helps if cpw is narrower/higher impedance)
+# for value, HFSS_sweep_to_examine in zip(inv1_cpw_width_names, HFSS_sweep_sims_inv1_cpw_width):
+#     plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep_to_examine, L_vals, passive_Z_func_from_inv, omega_arr, title = value)
+# res0_cpw_width
+for value, HFSS_sweep_to_examine in zip(res0_cpw_width_names, HFSS_sweep_sims_res0_cpw_width):
     plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep_to_examine, L_vals, passive_Z_func_from_inv, omega_arr, title = value)
+#cap_finger_len (significant difference but not better per se)
+# for value, HFSS_sweep_to_examine in zip(cap_finger_lens, HFSS_sweep_sims_cap_finger_len):
+#     plot_mode_reZ_vs_inductance_vs_ideal(HFSS_sweep_to_examine, L_vals, passive_Z_func_from_inv, omega_arr, title = value)
 
 z_from_inv = HFSS_sweep_to_examine.find_p2_input_impedance(L_squid, omega_arr)
 
