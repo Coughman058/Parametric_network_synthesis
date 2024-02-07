@@ -15,7 +15,7 @@ from dataclasses import dataclass
 from scipy.optimize import root_scalar
 from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_input_impedance, mode_results_to_device_params
 from ..network_tools.network_synthesis import Network
-from tqdm import tqdm
+from tqdm.auto import tqdm
 '''
 overall pipeline: 
 - import an s2p file using skrf
@@ -245,7 +245,7 @@ class NdHFSSSweepOptimizer:
     def __init__(self, filename):
         self.filename = filename
 
-    def optimize_params(self, omega_arr=None):
+    def optimize_params(self, ideal_net, omega_arr=None):
         self.par_axes, self.combos, self.skrf_nets, self.HFSS_omega_arr = self.skrf_nets_from_sweep_file()
         if omega_arr is None:
             self.omega_arr = self.HFSS_omega_arr
@@ -255,7 +255,8 @@ class NdHFSSSweepOptimizer:
                   "\nomega_arr/2/pi (GHz): ", omega_arr / 2 / np.pi / 1e9)
         # calculate the cost functions for each parameter combination
         self.cost_arr, self.z_vals_arr, self.ideal_z_vals_arr = self.calculate_cost_landscape(self.combos,
-                                                                                              self.skrf_nets)
+                                                                                              self.skrf_nets,
+                                                                                              ideal_net)
         self.find_test_cost_minimum(self.combos, self.cost_arr, self.ideal_z_vals_arr, self.z_vals_arr, self.par_axes)
 
     def skrf_nets_from_sweep_file(self):
@@ -276,7 +277,7 @@ class NdHFSSSweepOptimizer:
         combos = np.array(np.meshgrid(*par_axes_vals)).T.reshape(-1, len(par_axes))
         nets = []
         print("Processing combinations of variables into SKRF networks...")
-        for i, par_vals in tqdm(enumerate(combos)):
+        for i, par_vals in enumerate(tqdm(combos)):
             filters = [sweep_file[par_axes[i]] == par_vals[i] for i in range(len(par_vals))]
             filtered_df = sweep_file
             for filt in filters:
@@ -284,8 +285,8 @@ class NdHFSSSweepOptimizer:
             # now we have the filtered df, we can construct the skrf file
             freqs = np.hstack(filtered_df[filtered_df.columns[-5:-4]].to_numpy())
             z11 = csv_str_to_complex(np.hstack(filtered_df[filtered_df.columns[-4:-3]].to_numpy()))
-            z12 = csv_str_to_complex(np.hstack(filtered_df[filtered_df.columns[-3:-2]].to_numpy()))
-            z21 = csv_str_to_complex(np.hstack(filtered_df[filtered_df.columns[-2:-1]].to_numpy()))
+            z21 = csv_str_to_complex(np.hstack(filtered_df[filtered_df.columns[-3:-2]].to_numpy()))
+            z12 = csv_str_to_complex(np.hstack(filtered_df[filtered_df.columns[-2:-1]].to_numpy()))
             z22 = csv_str_to_complex(np.hstack(filtered_df[filtered_df.columns[-1:]].to_numpy()))
             zmtx = np.moveaxis(np.array([[z11, z12], [z21, z22]]), -1, 0)
             # f = rf.Frequency.from_f(freqs)
@@ -330,8 +331,9 @@ class NdHFSSSweepOptimizer:
     def calculate_cost_landscape(self, combos, skrf_nets, ideal_net):
         cost_arr = []
         z_vals_arr, ideal_z_vals_arr = [], []
-        for combo, skrf_net in zip(combos, skrf_nets):
-            print("combo: ", combo)
+        print("Calculating cost landscape...")
+        for combo, skrf_net in tqdm(zip(combos, skrf_nets), total = len(combos)):
+            # print("combo: ", combo)
             L_sym = sp.symbols('L')
             inv_J_sym = sp.symbols('J')
             omega0_val = 2 * np.pi * 7e9

@@ -691,7 +691,7 @@ class Network:
         '''
         return compress_abcd_array(self.ABCD_mtxs)
 
-    def total_passive_ABCD(self, array=True, add_index = 0):
+    def total_passive_ABCD(self, array=True, add_index = 0, debug = False):
         '''
         Let's calculate the scattering parameters of the network when the JPA is
         off. This should be easy, we're just looking at the phase structure of the
@@ -703,12 +703,14 @@ class Network:
         [(i, el) for (i, el) in enumerate(self.net_elements) if type(el) == DegenerateParametricInverterAmp][0][0]
 
         if array:
-            print("last ABCD matrix (not included in compression")
-            print(self.ABCD_mtxs[inverter_index+add_index])
+            if debug:
+                print("last ABCD matrix (not included in compression")
+                print(self.ABCD_mtxs[inverter_index+add_index])
             return compress_abcd_array(self.ABCD_mtxs[0:inverter_index+add_index])
         else:
-            print("last ABCD matrix (not included in compression")
-            print(self.ABCD_mtxs[inverter_index - 1+add_index])
+            if debug:
+                print("last ABCD matrix (not included in compression")
+                print(self.ABCD_mtxs[inverter_index - 1+add_index])
             return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 1+add_index])
 
     def passive_impedance_seen_from_port(self, add_index=0):

@@ -7,7 +7,6 @@ import sympy as sp
 import parametricSynthesis
 from parametricSynthesis.simulation_tools.HFSS_analysis import NdHFSSSweepOptimizer
 from parametricSynthesis.network_tools.network_synthesis import Network
-from tqdm import tqdm
 
 active_network_prototypes = parametricSynthesis.network_tools.network_synthesis.get_active_network_prototypes()
 active_network_prototypes
@@ -38,7 +37,7 @@ fig = ideal_net.plot_scattering(f_arr_GHz,
                             debug = True);
 
 
-filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\01_DM_cap_finger_length_and_inv1_cpw_width.csv"
-
-analyzer = NdHFSSSweepOptimizer(filename)
-analyzer.optimize_params()
+filename_2D = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\01_DM_cap_finger_length_and_inv1_cpw_width.csv"
+# filename_3D = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\02_DM_cap_finger_length_and_inv1_cpw_width_and_inv2_cpw_width.csv"
+analyzer = NdHFSSSweepOptimizer(filename_2D)
+analyzer.optimize_params(ideal_net)
