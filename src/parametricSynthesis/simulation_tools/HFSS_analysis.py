@@ -369,6 +369,7 @@ class NdHFSSSweepOptimizer:
         axs[0].plot(self.omega_arr, min_cost_ideal_z_vals.real, label='Ideal, real')
         axs[1].plot(self.omega_arr, min_cost_ideal_z_vals.imag, label='Ideal, imag')
         [ax.legend() for ax in axs]
+        plt.show()
 
         #if the space is two-dimensional, then we can plot the entire cost landscape
         if len(par_names) == 2:
@@ -385,6 +386,7 @@ class NdHFSSSweepOptimizer:
             ax.scatter(min_cost_combo[0], min_cost_combo[1], c='r', label='Minimum cost')
             ax.legend(bbox_to_anchor=(1.05, 1))
             plt.colorbar(im)
+            plt.show()
 
         if len(par_names) >= 2:
             """
