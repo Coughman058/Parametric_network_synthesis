@@ -327,7 +327,7 @@ class NdHFSSSweepOptimizer:
 
         return cost, net_z_vals, ideal_z_vals
 
-    def calculate_cost_landscape(self, combos, skrf_nets):
+    def calculate_cost_landscape(self, combos, skrf_nets, ideal_net):
         cost_arr = []
         z_vals_arr, ideal_z_vals_arr = [], []
         for combo, skrf_net in zip(combos, skrf_nets):
@@ -344,7 +344,7 @@ class NdHFSSSweepOptimizer:
                                                               dw)
             # for each one of these networks, we need to calculate a cost function at the operating inductance
             # breakpoint()
-            cost, net_z_vals, ideal_z_vals = self.calculate_net_cost(L_squid, omega_arr, sim_net, ideal_net)
+            cost, net_z_vals, ideal_z_vals = self.calculate_net_cost(ideal_net.L[0], omega_arr, sim_net, ideal_net)
             cost_arr.append(cost)
             z_vals_arr.append(net_z_vals)
             ideal_z_vals_arr.append(ideal_z_vals)

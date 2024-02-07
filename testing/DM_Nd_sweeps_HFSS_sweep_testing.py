@@ -5,7 +5,7 @@ import skrf as rf
 from scipy.interpolate import LinearNDInterpolator, interp1d
 import sympy as sp
 import parametricSynthesis
-from parametricSynthesis.simulation_tools.HFSS_analysis import InterpolatedNetworkWithInverterFromSKRF
+from parametricSynthesis.simulation_tools.HFSS_analysis import NdHFSSSweepOptimizer
 from parametricSynthesis.network_tools.network_synthesis import Network
 from tqdm import tqdm
 
@@ -21,18 +21,14 @@ z_arr = np.array([0,60,50], dtype = float)
 tline_corr_factor = 0.85
 f_arr_GHz = np.linspace(f0/1e9-0.7,f0/1e9+0.7,201)
 ideal_net = parametricSynthesis.network_tools.network_synthesis.calculate_network(g_arr, z_arr, f0, dw, L_squid, printout = False)
-# net_types = ['tline_cpld_lumped', 'tline_cpld_l2', 'tline_cpld_l4']
-# linestyles = ['dotted', 'dashed', 'solid']
-net_type = 'tline_cpld_l4'
-linestyle = 'solid'
 fig, ax = plt.subplots()
 ax.set_title('Gain by pump power and filter type')
 ax.grid()
 #pumped mutual
-ideal_net.gen_net_by_type(net_type, active = True, core_inductor = False, method = 'pumped_mutual',
+ideal_net.gen_net_by_type('tline_cpld_l4', active = True, core_inductor = False, method = 'pumped_mutual',
                   tline_inv_Z_corr_factor = tline_corr_factor, use_approx = False) #0.945
 fig = ideal_net.plot_scattering(f_arr_GHz,
-                            linestyle = linestyle,
+                            linestyle = 'solid',
                             fig = fig,
                             vary_pump = False,
                             method = 'pumped_mutual',
@@ -43,3 +39,6 @@ fig = ideal_net.plot_scattering(f_arr_GHz,
 
 
 filename = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\01_DM_cap_finger_length_and_inv1_cpw_width.csv"
+
+analyzer = NdHFSSSweepOptimizer(filename)
+analyzer.optimize_params()
