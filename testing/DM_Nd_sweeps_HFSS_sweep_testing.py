@@ -39,5 +39,8 @@ fig = ideal_net.plot_scattering(f_arr_GHz,
 
 filename_2D = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\01_DM_cap_finger_length_and_inv1_cpw_width.csv"
 # filename_3D = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\02_DM_cap_finger_length_and_inv1_cpw_width_and_inv2_cpw_width.csv"
-analyzer = NdHFSSSweepOptimizer(filename_2D)
+filename3 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\03_DM_adjusted_cap_inv_cpw_widths.csv"
+filename4 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\04_DM_adjusted_cap_inv1_cpw_gap_res0_cpw_gap.csv"
+filename5 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\05_DM_adjusted_cap_inv_cpw_widths_res0_cpw_gap.csv"
+analyzer = NdHFSSSweepOptimizer(filename5)
 analyzer.optimize_params(ideal_net)

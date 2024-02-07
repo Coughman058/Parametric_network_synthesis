@@ -16,6 +16,7 @@ from scipy.optimize import root_scalar
 from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_input_impedance, mode_results_to_device_params
 from ..network_tools.network_synthesis import Network
 from tqdm.auto import tqdm
+import matplotlib as mpl
 '''
 overall pipeline: 
 - import an s2p file using skrf
@@ -297,16 +298,14 @@ class NdHFSSSweepOptimizer:
 
     def calculate_net_cost(self, L_val, omega_arr,
                            sim_net: InterpolatedNetworkWithInverterFromSKRF,
-                           analytic_net: Network):
+                           ideal_z_func):
         '''
         calculates the cost function for a given network at a given inductance value
         '''
         # first, we need to calculate the impedance of the network at the given inductance
         net_z_vals = sim_net.find_p2_input_impedance(L_val, omega_arr, Z0=50)
         # now we need to calculate the ideal impedance at the given inductance
-        ideal_z_vals = analytic_net.analytical_impedance_to_numerical_impedance_from_array_inductance(
-            analytic_net.passive_impedance_seen_from_inverter()
-        )(omega_arr, L_val)
+        ideal_z_vals = ideal_z_func(omega_arr, L_val)
         # now we need to calculate the cost function
         # this cost function just minimizes the difference over the whole frequency range
         cost = np.sum(np.abs(net_z_vals - ideal_z_vals))
@@ -328,10 +327,13 @@ class NdHFSSSweepOptimizer:
 
         return cost, net_z_vals, ideal_z_vals
 
-    def calculate_cost_landscape(self, combos, skrf_nets, ideal_net):
+    def calculate_cost_landscape(self, combos, skrf_nets, ideal_net: Network):
         cost_arr = []
         z_vals_arr, ideal_z_vals_arr = [], []
         print("Calculating cost landscape...")
+        ideal_net_z_func = ideal_net.analytical_impedance_to_numerical_impedance_from_array_inductance(
+            ideal_net.passive_impedance_seen_from_inverter()
+        )
         for combo, skrf_net in tqdm(zip(combos, skrf_nets), total = len(combos)):
             # print("combo: ", combo)
             L_sym = sp.symbols('L')
@@ -346,7 +348,7 @@ class NdHFSSSweepOptimizer:
                                                               dw)
             # for each one of these networks, we need to calculate a cost function at the operating inductance
             # breakpoint()
-            cost, net_z_vals, ideal_z_vals = self.calculate_net_cost(ideal_net.L[0], omega_arr, sim_net, ideal_net)
+            cost, net_z_vals, ideal_z_vals = self.calculate_net_cost(ideal_net.L[0], omega_arr, sim_net, ideal_net_z_func)
             cost_arr.append(cost)
             z_vals_arr.append(net_z_vals)
             ideal_z_vals_arr.append(ideal_z_vals)
@@ -368,7 +370,66 @@ class NdHFSSSweepOptimizer:
         axs[1].plot(self.omega_arr, min_cost_ideal_z_vals.imag, label='Ideal, imag')
         [ax.legend() for ax in axs]
 
-        plt.show()
+        #if the space is two-dimensional, then we can plot the entire cost landscape
+        if len(par_names) == 2:
+            fig, ax = plt.subplots()
+            fig.suptitle(f"{self.filename}")
+            ax.set_title(f"Cost landscape for\n{par_names}")
+            ax.set_xlabel(par_names[0])
+            ax.set_ylabel(par_names[1])
+            x = np.unique(combos[:, 0])
+            y = np.unique(combos[:, 1])
+            z = np.array(cost_arr).reshape(len(x), len(y)).T
+            im = ax.contourf(x, y, z, cmap='viridis')
+            ax.scatter(combos[:, 0], combos[:, 1], c='k', label='Tested combinations')
+            ax.scatter(min_cost_combo[0], min_cost_combo[1], c='r', label='Minimum cost')
+            ax.legend(bbox_to_anchor=(1.05, 1))
+            plt.colorbar(im)
+
+        if len(par_names) >= 2:
+            """
+            If the length is greater than two, we will iterate through all possible combinations of the parameters,
+            and plot cuts of the landscape for each pair of parameters around the optimal point. There is probably a 
+            way to do this more mathematically...
+            """
+            num_plots = len(par_names) * (len(par_names) - 1) / 2 #this is N choose 2, where n is the number of parameters
+            mpl.use('Qt5Agg')
+            fig, axs = plt.subplots(nrows=1, ncols=int(num_plots))
+            k = 0 #this just tracks the plot number
+            fig.suptitle(f"{self.filename}")
+            for i, (par_val1, ax1_par_name) in enumerate(zip(min_cost_combo, par_names)):
+                for j, (par_val2, ax2_par_name) in enumerate(zip(min_cost_combo, par_names)):
+                    if j>i:
+                        #find the values of the other parameters, which will be fixed, then made into filters
+                        fixed_par_index = [k for k in range(len(par_names)) if k not in [i, j]]
+                        fixed_par_vals = [par_val for k, par_val in enumerate(min_cost_combo) if k not in [i, j]]
+                        fixed_par_names = [par_name for k, par_name in enumerate(par_names) if k not in [i, j]]
+                        #find the cost landscape for the two parameters
+                        fixed_cost_arr_filter = np.ones(len(combos), dtype=bool)
+                        for fixed_index, fixed_val, fixed_name in zip(fixed_par_index, fixed_par_vals, fixed_par_names):
+                            #filter the cost_arr and combos to only include those combinations that have the fixed
+                            #parameters at the optimal values
+                            fixed_cost_arr_filter *= combos[:, fixed_index] == fixed_val
+                        fixed_cost_arr = np.array(cost_arr)[fixed_cost_arr_filter]
+                        '''
+                        this will have total length of mxn, where m and n are the number of unique values of the two 
+                        parameters ax1_par_name and ax2_par_name
+                        '''
+                        fixed_combos = combos[fixed_cost_arr_filter]
+                        ax = axs[k]
+                        ax.set_title(f"Cost landscape for\n{ax1_par_name} and {ax2_par_name}, \nfixed parameters: {fixed_par_names}\nvalues: {fixed_par_vals}")
+                        ax.set_xlabel(ax1_par_name)
+                        ax.set_ylabel(ax2_par_name)
+                        x = np.unique(fixed_combos[:, i])
+                        y = np.unique(fixed_combos[:, j])
+                        z = np.array(fixed_cost_arr).reshape(len(x), len(y)).T
+                        im = ax.contourf(x, y, z, cmap='viridis')
+                        ax.scatter(fixed_combos[:, i], fixed_combos[:, j], c='k', label='Tested combinations')
+                        ax.scatter(min_cost_combo[i], min_cost_combo[j], c='r', label='Minimum cost')
+                        ax.legend(bbox_to_anchor=(1.05, 1))
+                        plt.colorbar(im)
+                        k+=1
+            plt.show()
 
 #TODO: everything below here is deprecated
 

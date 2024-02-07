@@ -14,5 +14,8 @@ setup(
                       'sympy',
                       'ipython',
                       'ipywidgets',
-                      'tqdm']
+                      'tqdm',
+                      'pandas',
+                      'scipy',
+                      'pyqt5']
 )
