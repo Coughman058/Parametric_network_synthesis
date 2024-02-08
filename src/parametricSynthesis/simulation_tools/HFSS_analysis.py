@@ -243,8 +243,9 @@ class NdHFSSSweepOptimizer:
     these two should be close, but this landscape may have many local minima.
     '''
 
-    def __init__(self, filename):
+    def __init__(self, filename, y_to_z = False):
         self.filename = filename
+        self.y_to_z = False
 
     def optimize_params(self, ideal_net, omega_arr=None):
         self.par_axes, self.combos, self.skrf_nets, self.HFSS_omega_arr = self.skrf_nets_from_sweep_file()
@@ -396,7 +397,11 @@ class NdHFSSSweepOptimizer:
             """
             num_plots = len(par_names) * (len(par_names) - 1) / 2 #this is N choose 2, where n is the number of parameters
             mpl.use('Qt5Agg')
-            fig, axs = plt.subplots(nrows=1, ncols=int(num_plots))
+            if num_plots>3:
+                fig, axs = plt.subplots(nrows=np.ceiling(num_plots/3), ncols=3)
+                axs = axs.flatten()
+            else:
+                fig, axs = plt.subplots(nrows=1, ncols=int(num_plots))
             k = 0 #this just tracks the plot number
             fig.suptitle(f"{self.filename}")
             for i, (par_val1, ax1_par_name) in enumerate(zip(min_cost_combo, par_names)):

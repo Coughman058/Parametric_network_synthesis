@@ -43,5 +43,9 @@ filename3 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\
 filename4 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\04_DM_adjusted_cap_inv1_cpw_gap_res0_cpw_gap.csv"
 filename5 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\05_DM_adjusted_cap_inv_cpw_widths_res0_cpw_gap.csv"
 filename6 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\06_DM_nom_cap_all_traces.csv"
-analyzer = NdHFSSSweepOptimizer(filename6)
+filename7 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\07_DM_nom_cap_high_inv_Z_all_all_lengths.csv"
+filename8 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\08_DM_nom_cap_high_inv_Z_all_all_lengths.csv"
+filename9 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\09_DM_nom_cap_high_inv_Z_all_all_lengths_and_cap.csv"
+filename10 = r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\integrated_modelling\10_DM_nom_cap_high_inv_Z_all_all_lengths_and_cap.csv"
+analyzer = NdHFSSSweepOptimizer(filename10)
 analyzer.optimize_params(ideal_net)
