@@ -254,7 +254,7 @@ def calculate_impedance_for_config(mMtxN,
                 [ax.set_ylim(yrange) for ax in axs.flatten()]
         else:
             Nplots = np.shape(plot_indices)[0]
-            fig, axs = plt.subplots(ncols=Nplots, figsize=np.array([4 * Nplots, 4]), sharey=True)
+            fig, axs = plt.subplots(nrows = 2, ncols=Nplots, figsize=np.array([4 * Nplots, 4]), sharey=True, sharex = True)
             [ax.grid() for ax in axs.flatten()]
             if yrange is not None:
                 [ax.set_ylim(yrange) for ax in axs.flatten()]
@@ -299,10 +299,10 @@ def calculate_impedance_for_config(mMtxN,
         else:
             for l, j in enumerate(plot_indices):  # element of [Yin] / mode to plot
                 for k, pd in enumerate(pump_det):
-                    axs[l].plot(signal_det, Yin[i, j, k, :].real, label='Real')
-                    axs[l].plot(signal_det, Yin[i, j, k, :].imag, label='Imag')
-                    axs[l].set_title("Yin_%d" % j)
-                    axs[l].legend()
+                    axs[0,l].plot(signal_det, Yin[i, j, k, :].real, label='Real')
+                    axs[1,l].plot(signal_det, Yin[i, j, k, :].imag, label='Imag')
+                    axs[0,l].set_title("Yin_%d" % j)
+                    axs[0,l].legend()
 
     fig.tight_layout()
     return fig, Yin
