@@ -301,8 +301,9 @@ def calculate_impedance_for_config(mMtxN,
                 for k, pd in enumerate(pump_det):
                     axs[0,l].plot(signal_det, Yin[i, j, k, :].real, label='Real')
                     axs[1,l].plot(signal_det, Yin[i, j, k, :].imag, label='Imag')
-                    axs[0,l].set_title("Yin_%d" % j)
-                    axs[0,l].legend()
+                    axs[0,l].set_title("Yin_%d, real" % j)
+                    axs[1, l].set_title("Yin_%d, imag" % j)
+                    # axs[0,l].legend()
 
     fig.tight_layout()
     return fig, Yin
