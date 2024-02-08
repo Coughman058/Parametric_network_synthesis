@@ -17,6 +17,8 @@ from ..simulation_tools.Quantizer import sum_real_and_imag, find_modes_from_inpu
 from ..network_tools.network_synthesis import Network
 from tqdm.auto import tqdm
 import matplotlib as mpl
+import warnings
+warnings.filterwarnings("ignore")
 '''
 overall pipeline: 
 - import an s2p file using skrf
@@ -397,8 +399,11 @@ class NdHFSSSweepOptimizer:
             """
             num_plots = len(par_names) * (len(par_names) - 1) / 2 #this is N choose 2, where n is the number of parameters
             mpl.use('Qt5Agg')
-            if num_plots>3:
-                fig, axs = plt.subplots(nrows=np.ceiling(num_plots/3), ncols=3)
+            if num_plots>3 and num_plots%3==0:
+                fig, axs = plt.subplots(nrows=int(num_plots/3), ncols=3)
+                axs = axs.flatten()
+            elif num_plots>3:
+                fig, axs = plt.subplots(nrows=int(num_plots/3)+1, ncols=3)
                 axs = axs.flatten()
             else:
                 fig, axs = plt.subplots(nrows=1, ncols=int(num_plots))
