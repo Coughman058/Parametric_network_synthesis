@@ -35,4 +35,4 @@ def input_inductance_variation(net, L_wb_value, f_arr_Ghz, method = 'pumpistor')
                                           method = method);
   ax.legend(ncol = 2, bbox_to_anchor = (1,1))
   ax.grid()
-  return fig
+  return net_with_inductor, fig

@@ -28,9 +28,14 @@ def get_active_network_prototypes():
 
 def get_passive_network_prototypes():
     passive_network_prototypes = dict(
+        N3_Cheby_R05 = np.array([1.5963, 1.0967, 1.5963, 1])
     )
     return passive_network_prototypes
 
+def cap_to_tline_length_mod_factor(cap,
+                                   z0,
+                                   omega0):
+    return (1-z0*omega0*cap*2/np.pi)
 
 def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     """
@@ -96,6 +101,10 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     # J_arr[0] /= np.sqrt(dw)
     J_arr[-1] /= np.sqrt(dw)
     CC_arr_raw = J_arr / w0
+    print("CC_arr_raw: ", CC_arr_raw * 1e12, "pF")
+
+    l_arr_uncomp = np.pi / 2 * np.ones_like(z_arr)
+
     if elim_inverter:
         CC_arr_raw[-1] = 0
         CC_arr = np.copy(CC_arr_raw)
@@ -116,6 +125,12 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         C_arr_uncomp = 1 / w0 / z_arr
         C_arr = np.array([C_arr_uncomp[i] - CC_arr_comp[i] - CC_arr_comp[i + 1]
                           for i in range(len(C_arr_uncomp))])
+        total_CC_comp_arr = np.array([CC_arr_comp[i] + CC_arr_comp[i + 1]
+                          for i in range(len(C_arr_uncomp))])
+        #for lambda/4 stubs with cap coupling
+        tline_mod_factors = cap_to_tline_length_mod_factor(total_CC_comp_arr, z_arr, w0)
+        print("tline_mod_factors: ", tline_mod_factors)
+        l_arr_comp = l_arr_uncomp*tline_mod_factors
     if np.any(C_arr<0):
         print("Warning: negative capacitance in filter, maybe try TLINE implementation")
 
@@ -151,6 +166,8 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
                    Cu=C_arr_uncomp,
                    L=L_arr,
                    Z=z_arr,
+                   theta_u = l_arr_uncomp,
+                   theta = l_arr_comp,
                    beta=beta_arr,
                    beta_p=beta_p,
                    R_active_val=calculate_PA_impedance(ZPA_res, g_arr[0], g_arr[1], dw),
@@ -185,6 +202,8 @@ class Network:
     Cu: np.ndarray
     L: np.ndarray
     Z: np.ndarray
+    theta_u: np.ndarray
+    theta: np.ndarray
     beta: np.ndarray
     beta_p: float
     R_active_val: float
