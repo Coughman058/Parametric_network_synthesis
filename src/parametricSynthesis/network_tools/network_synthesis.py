@@ -31,6 +31,10 @@ def get_passive_network_prototypes():
     )
     return passive_network_prototypes
 
+def cap_to_tline_length_mod_factor(cap,
+                                   z0,
+                                   omega0):
+    return (1-z0*omega0*cap*2/np.pi)
 
 def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     """
@@ -62,6 +66,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
 
     dw_limit = z_arr[-2]/z_arr[-1]*g_arr[-1]*g_arr[-2]
     first_res_lower_bound = dw*Z0/(g_arr[-1]*g_arr[-2])
+
     #sympy with the assist in finding the roots
     num_modes = len(g_arr) - 2
     #these indices mean nothing, look at the colab for more info
