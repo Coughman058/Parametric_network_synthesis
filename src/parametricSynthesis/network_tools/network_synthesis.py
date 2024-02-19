@@ -34,9 +34,10 @@ def get_passive_network_prototypes():
 def cap_to_tline_length_mod_factor(cap,
                                    z0,
                                    omega0):
+    print("compensating z = ", z0, "tline with cap = ", cap)
     return (1-z0*omega0*cap*2/np.pi)
 
-def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
+def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, inv_corr_factor=1):
     """
     Calculates the network parameters for a given set of g and z values.
     :param g_arr: array of g values, unique for each filter prototype
@@ -100,6 +101,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
     )
     # J_arr[0] /= np.sqrt(dw)
     J_arr[-1] /= np.sqrt(dw)
+    J_arr*=inv_corr_factor
     CC_arr_raw = J_arr / w0
     if elim_inverter:
         CC_arr_raw[-1] = 0
@@ -108,6 +110,7 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         C_arr_uncomp = 1 / w0 / z_arr
         C_arr = np.array([C_arr_uncomp[i] - CC_arr_padded[i] - CC_arr_padded[i + 1]
                           for i in range(len(C_arr_uncomp))])
+
     else:
         mod_factor = (1-z_arr[-1]**2*J_arr[-1]**2)
         if mod_factor<0:
@@ -121,6 +124,12 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
         C_arr_uncomp = 1 / w0 / z_arr
         C_arr = np.array([C_arr_uncomp[i] - CC_arr_comp[i] - CC_arr_comp[i + 1]
                           for i in range(len(C_arr_uncomp))])
+        tline_theta_arr_uncomp = np.array([np.pi/2 for i in range(len(C_arr_uncomp))])
+        tline_theta_arr = np.array([tline_theta_arr_uncomp[i]*cap_to_tline_length_mod_factor(
+            CC_arr_comp[i] + CC_arr_comp[i + 1],
+            z_arr[i]*np.pi/4,
+            w0) for i in range(len(C_arr_uncomp))])
+
 
     if np.any(C_arr<0):
         print("Warning: negative capacitance in filter, maybe try TLINE implementation")
@@ -155,6 +164,8 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True):
                    CC=CC_arr,
                    C=C_arr,
                    Cu=C_arr_uncomp,
+                   theta = tline_theta_arr,
+                   theta_u = tline_theta_arr_uncomp,
                    L=L_arr,
                    Z=z_arr,
                    beta=beta_arr,
@@ -189,6 +200,8 @@ class Network:
     CC: np.ndarray
     C: np.ndarray
     Cu: np.ndarray
+    theta: np.ndarray
+    theta_u: np.ndarray
     L: np.ndarray
     Z: np.ndarray
     beta: np.ndarray
@@ -202,6 +215,7 @@ class Network:
             'tline_cpld_lumped',
             'tline_cpld_l4',
             'tline_cpld_l2',
+            'cap_cpld_l4',
             'ideal']
         self.net_size = self.J.size - 1
 
@@ -258,6 +272,8 @@ class Network:
         else:
             cap_val = self.Cu[n]
         cap_el = Capacitor(omega_sym, cap_symbol, cap_val)
+        print("inserting cap el at ", n)
+
         self.net_elements.insert(0, cap_el)
         if conjugate:
             self.ABCD_mtxs.insert(0, sp.conjugate(cap_el.ABCDshunt()))
@@ -272,7 +288,7 @@ class Network:
         self.res_Z_symbols.append(Zres_symbol)
         if include_inductor: self.parameter_subs += [(ind_symbol, Zres_symbol / omega_res_symbol)]
 
-    def tline_res(self, n, net_size, omega_sym, res_type='lambda4', use_approx=False, conjugate=False):
+    def tline_res(self, n, net_size, omega_sym, res_type='lambda4', use_approx=False, conjugate=False, compensated = False):
 
         """
         Adds a transmission line resonator to the network
@@ -296,8 +312,13 @@ class Network:
 
         if res_type == 'lambda4_shunt':
             # print('shunt l4')
-            tline_Z_val = self.Z[n] * (np.pi / 4)
-            tline_theta_val = sp.pi / 2
+            if compensated:
+                tline_Z_val = self.Z[n] * (np.pi / 4)
+                tline_theta_val = self.theta[n]
+            else:
+                tline_Z_val = self.Z[n] * (np.pi / 4)
+                tline_theta_val = self.theta_u[n]
+
             tline_el = Tline(
                 omega_sym,
                 tline_Z_symbol,
@@ -446,6 +467,37 @@ class Network:
             self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
             self.net_subs.insert(0, (tline_omega_symbol, tline_omega_val))
 
+    def cap_cpld_tline_unit(self, n, net_size, omega_sym,
+                              inv_corr_factor=1,
+                              tline_res_type='lambda4_shunt',
+                              use_approx=False, conjugate=False):
+        '''
+        Adds a transmission line resonator and a lambda/4 inverter in series to the network
+        :param n: same as in lumped_res
+        :param net_size: same as in lumped_res
+        :param omega_sym: same as in lumped_res
+        :param tline_inv_Z_corr_factor: same as in tline_cpld_lumped_unit
+        :param tline_res_type: same as in tline_cpld_lumped_unit
+        :param use_approx: same as in tline_cpld_lumped_unit
+        :return:
+        '''
+        # resonator
+        self.tline_res(n, net_size, omega_sym,
+                       res_type=tline_res_type, conjugate=conjugate, compensated = True, use_approx=use_approx)
+        # coupler
+        if n != net_size or self.elim_inverter == False:  # all these have eliminated port inverters
+            cpl_symbol = sp.symbols(f'Cc_{n}', positive=True)
+            cpl_val = self.CC[n] * inv_corr_factor
+            cpl_el = Capacitor(omega_sym, cpl_symbol, cpl_val)
+            self.net_elements.insert(0, cpl_el)
+            self.net_subs.insert(0, (cpl_symbol, cpl_val))
+            if conjugate:
+                self.ABCD_mtxs.insert(0, sp.conjugate(cpl_el.ABCDseries()))
+            else:
+                self.ABCD_mtxs.insert(0, cpl_el.ABCDseries())
+
+
+
     def circuit_unit(self, Ftype, n, net_size, omega_sym,
                      include_inductor=True, tline_inv_Z_corr_factor=1, use_approx=False, conjugate=False):
         """
@@ -464,12 +516,14 @@ class Network:
         if Ftype not in self.Ftypes:
             raise Exception(f"type not incorporated, choose from {self.Ftypes}")
 
-        if Ftype == 'cap_cpld_lumped':
+        if Ftype == 'cap_cpld_lumped' or (Ftype == 'cap_cpld_l4' and n == 0):
+            print("Inserting cap cpld lumped unit at " + str(n) + " of " + str(net_size))
             self.cap_cpld_lumped_unit(n, net_size, omega_sym,
                                       include_inductor=include_inductor,
                                       conjugate=conjugate,
                                       inv_corr_factor = tline_inv_Z_corr_factor)
-        elif Ftype == 'tline_cpld_lumped' or n == 0:
+        elif Ftype == 'tline_cpld_lumped' or (Ftype == 'tline_cpld_l4' and n == 0) or (Ftype == 'tline_cpld_l2' and n == 0):
+            print("Inserting tline cpld lumped unit at " + str(n) + " of " + str(net_size))
             self.tline_cpld_lumped_unit(
                 n, net_size, omega_sym,
                 include_inductor=include_inductor,
@@ -478,6 +532,7 @@ class Network:
                 conjugate=conjugate)
 
         elif Ftype == 'tline_cpld_l4':
+            print("Inserting tline cpld tline unit at " + str(n) + " of " + str(net_size))
             self.tline_cpld_tline_unit(
                 n, net_size, omega_sym,
                 tline_res_type='lambda4_shunt',
@@ -486,6 +541,7 @@ class Network:
                 conjugate=conjugate)
 
         elif Ftype == 'tline_cpld_l2':
+            print("Inserting tline cpld tline unit at " + str(n) + " of " + str(net_size))
             self.tline_cpld_tline_unit(
                 n, net_size, omega_sym,
                 tline_res_type='lambda2_shunt',
@@ -493,6 +549,14 @@ class Network:
                 use_approx=use_approx,
                 conjugate=conjugate
             )
+        elif Ftype == 'cap_cpld_l4':
+            print("Inserting cap cpld tline unit at " + str(n) + " of " + str(net_size))
+            self.cap_cpld_tline_unit(
+                n, net_size, omega_sym,
+                tline_res_type='lambda4_shunt',
+                inv_corr_factor=tline_inv_Z_corr_factor,
+                use_approx=use_approx,
+                conjugate=conjugate)
         else:
             raise Exception('error in circuit_unit filter type')
 
