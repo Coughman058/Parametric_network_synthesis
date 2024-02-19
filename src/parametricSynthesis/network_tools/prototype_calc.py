@@ -87,7 +87,7 @@ def poly_from_pil(pil):
     # return z_factor_num, z_factor_den
     return z_factor_num, z_factor_den
 
-def gs_from_poly(num, den):
+def gs_from_poly(num, den, n):
     '''
     calculates the g coefficients from the numerator and denominator polynomials
     '''
@@ -104,7 +104,7 @@ def gs_from_poly(num, den):
 def prototype_gs(G_db, type = 'chebyshev', n = 3, r_db = 0.5):
     pil = PIL_from_gain(G_db, type = type, n = n, r_db = r_db)
     num, den = poly_from_pil(pil)
-    gs = gs_from_poly(num, den)
+    gs = gs_from_poly(num, den, n)
     return gs
 
 if __name__ == '__main__':
