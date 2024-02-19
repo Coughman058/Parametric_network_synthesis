@@ -799,7 +799,7 @@ class Network:
         '''
 
         ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index, debug = debug)
-        if self.Ftype == 'cap_cpld_lumped':
+        if self.Ftype == 'cap_cpld_lumped' or self.Ftype == 'cap_cpld_l4':
             negative_first_cap_symbol = sp.symbols('C_comp')
             negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
             ABCD_comp = negative_first_cap.ABCDshunt()
