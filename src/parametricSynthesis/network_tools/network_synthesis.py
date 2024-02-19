@@ -792,13 +792,13 @@ class Network:
         Z = abcd_to_z(ABCD, self.Z0)
         return Z[0,0]
 
-    def passive_impedance_seen_from_core_mode(self, add_index=0):
+    def passive_impedance_seen_from_core_mode(self, add_index=0, debug = False):
         '''
         This function calculates the impedance seen from the array port
         of the network, without including the array inductance.
         '''
 
-        ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index)
+        ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index, debug = debug)
         if self.Ftype == 'cap_cpld_lumped':
             negative_first_cap_symbol = sp.symbols('C_comp')
             negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
@@ -877,7 +877,7 @@ class Network:
         plt.show()
 
         passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
-                                              1 / self.passive_impedance_seen_from_core_mode(add_index=0).subs(
+                                              1 / self.passive_impedance_seen_from_core_mode(add_index=0, debug = debug).subs(
                                                   self.net_subs))
         passive_omega_arr = np.linspace(self.omega0_val - 2 * np.pi * 1e9 * omega_scale,
                                         self.omega0_val + 2 * np.pi * 1e9 * omega_scale, 1001)
@@ -890,7 +890,7 @@ class Network:
         plt.show()
 
         passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
-                                     self.passive_impedance_seen_from_core_mode().subs(self.net_subs))
+                                     self.passive_impedance_seen_from_core_mode(debug = debug).subs(self.net_subs))
 
         fig, ax = plt.subplots()
         ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
