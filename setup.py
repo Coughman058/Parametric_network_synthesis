@@ -17,5 +17,6 @@ setup(
                       'tqdm',
                       'pandas',
                       'scipy',
-                      'pyqt5']
+                      'pyqt5',
+                      'proplot']
 )

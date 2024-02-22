@@ -46,7 +46,7 @@ def interpolate_nd_hfss_mgoal_res(df,
         try:
             interpfunc = LinearNDInterpolator(ivarcpls, dvarlist)
         except ValueError: #this happens if it is a 1d sweep, then we need interp1d
-            interpfunc = interp1d(ivarcpls[:,0], dvarlist)
+            interpfunc = interp1d(ivarcpls[:,0], dvarlist, kind = 'quadratic')
         interpfuncs.append(interpfunc)
     return interpfuncs
 

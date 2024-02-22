@@ -32,6 +32,20 @@ def draw_net_by_type(net, Ftype, l = 3.5):
 
   return d
 
+def sketch_ideal_inverter_net(net, l = 1.5):
+    with schemdraw.Drawing() as d:
+        d += elm.Ground()
+        d += elm.RBox(label="$g_0$").up()
+        net_size = net.J.size
+        for n in range(net_size+2):
+          if n%2 == 0:
+            d += elm.RBox(label=f"$g_{n+1}$").right()
+            d.push()
+          else:
+            d += elm.RBox(label=f"$g_{n+1}$").down()
+            d += elm.Ground()
+            d.pop()
+    return d
 def sketch_TLINE_cpld_lumped(net, l = 1.5):
   with schemdraw.Drawing() as d:
     d += elm.Ground()
