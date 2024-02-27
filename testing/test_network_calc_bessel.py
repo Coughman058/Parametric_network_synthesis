@@ -18,10 +18,11 @@ Z_squid = w0 * L_squid
 
 # g_arr = np.array([1, 1.5963, 1.0967, 1.5963, 1])
 #^^^pozar example
-g_arr_old = active_network_prototypes['N3_Cheby_20dB_R05']
-g_arr = prototype_gs(20, type = 'chebyshev', n = 3, r_db = 1)
+
+g_arr = prototype_gs(20, type = 'bessel', n = 3, r_db = 1)
 z_arr = np.array([0, 35*4/np.pi, 35*4/np.pi, 50], dtype=float)
-tline_corr_factor = 0.982
+
+tline_corr_factor = 1
 
 f_arr_GHz = np.linspace(f0 / 1e9 - 0.5, f0 / 1e9 + 0.5, 401)
 net = calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=False, inv_corr_factor=tline_corr_factor)
@@ -29,7 +30,7 @@ net = calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=False, inv_corr_
 net.gen_net_by_type('cap_cpld_l4', active = True, core_inductor = False, method = 'pumped_mutual',
                       tline_inv_Z_corr_factor = 1, use_approx = False) #0.945
 fig, ax = plt.subplots()
-ax.set_title('Gain by pump power and filter type')
+ax.set_title('Bessel Filter')
 ax.grid()
 
 fig = net.plot_scattering(f_arr_GHz,

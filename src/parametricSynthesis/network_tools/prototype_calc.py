@@ -6,11 +6,15 @@ prototype polynomial. Butterworth and Chebyshev are the most common, but others 
 import numpy as np
 from numpy.polynomial import Polynomial as P, Chebyshev as C, Legendre as L, Hermite as H, Laguerre as La
 from scipy.special import factorial as fac
-def θn_coeff(n):
-    y = 0
-    for k in range(n+1):
-        y += fac(n+k)/(fac(n-k)*fac(k))
+def θn_coeff(n, k):
+    y = fac(2*n-k)/(fac(n-k)*fac(k)*2**(n-k))
     return y
+
+def bessel_coeffs_from_order(n):
+    coeffs = np.zeros(n+1)
+    for i in range(n+1):
+        coeffs[i] = θn_coeff(n, i)
+    return coeffs
 def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
     """
     calculates the power insertion loss function from the gain of the amplifier on-resonance,
@@ -31,7 +35,12 @@ def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
         pil_P = A*(1+k2*P(coeffs)**2)
 
     if type == 'bessel':
-        pass
+        coeffs_P = bessel_coeffs_from_order(n)
+        g_pl = 4 * g - 2
+        A = g_pl / (g_pl - 1)
+        k2 = 1 / (g_pl - 2)
+        pil_P = A * (1 + k2 * P(coeffs_P) ** 2)
+        print("bessel coeffs: ", coeffs_P)
 
     if type == 'chebyshev':
         if n%2 == 0:
