@@ -5,6 +5,12 @@ prototype polynomial. Butterworth and Chebyshev are the most common, but others 
 
 import numpy as np
 from numpy.polynomial import Polynomial as P, Chebyshev as C, Legendre as L, Hermite as H, Laguerre as La
+from scipy.special import factorial as fac
+def θn_coeff(n):
+    y = 0
+    for k in range(n+1):
+        y += fac(n+k)/(fac(n-k)*fac(k))
+    return y
 def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
     """
     calculates the power insertion loss function from the gain of the amplifier on-resonance,
@@ -12,6 +18,7 @@ def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
     G: reflection gain of the amplifier in dB on resonance (can set to negative values for passive filters)
     Ripple is specified in dB, defaults to 0.5dB
     """
+
     #the polynomials include the zeroth order, so we need to add 1 to the order
     g = 10 ** (g_db / 10)
     coeffs = np.zeros(n + 1)
@@ -22,6 +29,9 @@ def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
         A = g_pl / (g_pl - 1)
         k2 = 1 / (g_pl - 2)
         pil_P = A*(1+k2*P(coeffs)**2)
+
+    if type == 'bessel':
+        pass
 
     if type == 'chebyshev':
         if n%2 == 0:
@@ -62,9 +72,6 @@ def poly_from_pil(pil):
     """
     calculates the numerator and denominator to be synthesized in a cauer network
     """
-    """
-            calculates the numerator and denominator to be synthesized in a cauer network
-            """
 
     round_precision = 10
     all_zeros_R = (pil - 1).roots()

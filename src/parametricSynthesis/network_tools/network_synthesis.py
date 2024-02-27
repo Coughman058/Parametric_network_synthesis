@@ -722,6 +722,7 @@ class Network:
         else:
             Rvals = np.array([-self.R_active_val])
             Jvals = np.array([j0val])
+
         if method == 'pumpistor':
             for i, Rval in enumerate(Rvals):
                 alpha_val = Rval
@@ -739,8 +740,12 @@ class Network:
                         color=color
                         )
         elif method == 'pumped_mutual':
+            self.j0val = j0val
+            self.Smtx_j0 = Smtx_func(omega_arr, j0val)
+            self.omega_plot_arr = omega_arr
             for i, Jval in enumerate(Jvals):
                 plt_Smtxs = Smtx_func(omega_arr, Jval)
+
                 if focus:
                     if np.round(Jval, 4) == np.round(j0val, 4):
                         color = primary_color
