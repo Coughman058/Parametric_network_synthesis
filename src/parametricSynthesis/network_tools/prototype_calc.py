@@ -38,9 +38,13 @@ def PIL_from_gain(g_db, type ='chebyshev', n = 3, r_db = 0.5):
         coeffs_P = bessel_coeffs_from_order(n)
         g_pl = 4 * g - 2
         A = g_pl / (g_pl - 1)
-        k2 = 1 / (g_pl - 2)
-        pil_P = A * (1 + k2 * P(coeffs_P) ** 2)
+        # k2 = 1 / (g_pl - 2)
+        bessel_poly = P(coeffs_P)
+        pil_P = A * (bessel_poly/bessel_poly(0))**2
+        print("PIL at 0: ", pil_P(0))
         print("bessel coeffs: ", coeffs_P)
+        print("bessel poly: ", bessel_poly)
+
 
     if type == 'chebyshev':
         if n%2 == 0:
@@ -102,6 +106,43 @@ def poly_from_pil(pil):
     den_deg = z_factor_den.degree()
     # return z_factor_num, z_factor_den
     return z_factor_num, z_factor_den
+
+# def poly_bessel(g_db, order = 3, debug = False):
+#     """
+#     calculates the numerator and denominator to be synthesized in a cauer network, specfic to (reverse) bessel filters
+#     """
+#     g = 10 ** (g_db / 10)
+#
+#     coeffs_P = bessel_coeffs_from_order(n)
+#     g_pl = 4 * g - 2
+#     A = g_pl / (g_pl - 1)
+#     k2 = 1 / (g_pl - 2)
+#     # pil_P = A * (1 + k2 * P(coeffs_P) ** 2)
+#     theta_n = P(coeffs_P)
+#     if debug: print("bessel coeffs: ", coeffs_P)
+#
+#     num =
+#     den =
+#     round_precision = 10
+#     all_zeros_R = num.roots()
+#     zeros_R = [np.round(root, round_precision) for root in num.roots() if
+#                np.round(root, round_precision).real <= 0]
+#
+#     all_zeros_D = den.roots()
+#     poles_D = [np.round(root, round_precision) for root in den.roots() if np.round(root.real, round_precision) <= 0]
+#
+#     num_zeros = len(zeros_R)
+#     num_poles = len(poles_D)
+#     # construct R and d from power series polynomials
+#     R = P.fromroots(zeros_R)
+#     D = P.fromroots(poles_D)
+#
+#     z_factor_num = D + R
+#     z_factor_den = D - R
+#     num_deg = z_factor_num.degree()
+#     den_deg = z_factor_den.degree()
+#     # return z_factor_num, z_factor_den
+#     return z_factor_num, z_factor_den
 
 def gs_from_poly(num, den, n, debug = False):
     '''

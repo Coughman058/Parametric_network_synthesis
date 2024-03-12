@@ -18,5 +18,5 @@ setup(
                       'pandas',
                       'scipy',
                       'pyqt5',
-                      'proplot']
+                      'proplot==0.9.5']
 )
