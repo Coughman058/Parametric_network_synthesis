@@ -2,9 +2,10 @@ from .helper_functions import *
 from .component_ABCD import *
 from ..drawing_tools.sketching_functions import draw_net_by_type
 import matplotlib.pyplot as plt
-# from tensorwaves.function.sympy import fast_lambdify
+from tensorwaves.function.sympy import fast_lambdify
 from ..simulation_tools.Quantizer import find_modes_from_input_impedance, mode_results_to_device_params
 from scipy.optimize import newton
+from tqdm import tqdm
 
 def get_active_network_prototypes():
     """
@@ -34,10 +35,11 @@ def get_passive_network_prototypes():
 def cap_to_tline_length_mod_factor(cap,
                                    z0,
                                    omega0):
-    print("compensating z = ", z0, "tline with cap = ", cap)
-    return (1-z0*omega0*cap*2/np.pi)
+    length_factor = (1-z0*omega0*cap*2/np.pi)
+    print("compensating z = ", z0, "tline with cap = ", cap, "length factor = ", length_factor)
+    return length_factor
 
-def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, inv_corr_factor=1):
+def calculate_network(power_G_db, g_arr, z_arr, f0, dw, L_squid, printout=True, inv_corr_factor=1):
     """
     Calculates the network parameters for a given set of g and z values.
     :param g_arr: array of g values, unique for each filter prototype
@@ -157,21 +159,32 @@ def calculate_network(g_arr, z_arr, f0, dw, L_squid, printout=True, inv_corr_fac
         print("Z_arr: ", z_arr)
         print("Active Resistance, ", calculate_PA_impedance(ZPA_res, g_arr[0], g_arr[1], dw))
 
-    return Network(omega0_val=w0,
-                   g_arr=g_arr,
-                   dw=dw,
-                   J=J_arr,
-                   CC=CC_arr,
-                   C=C_arr,
-                   Cu=C_arr_uncomp,
-                   theta = tline_theta_arr,
-                   theta_u = tline_theta_arr_uncomp,
-                   L=L_arr,
-                   Z=z_arr,
-                   beta=beta_arr,
-                   beta_p=beta_p,
-                   R_active_val=calculate_PA_impedance(ZPA_res, g_arr[0], g_arr[1], dw),
-                   elim_inverter = elim_inverter)
+    return Network(
+        omega0_val=w0,
+        g_arr=g_arr,
+        dw=dw,
+        J=J_arr,
+        C=C_arr,
+        Z=z_arr,
+        power_G_db=power_G_db
+    )
+    # return Network(omega0_val=w0,
+    #                g_arr=g_arr,
+    #                dw=dw,
+    #                J=J_arr,
+    #                CC=CC_arr,
+    #                C=C_arr,
+    #                Cu=C_arr_uncomp,
+    #                theta = tline_theta_arr,
+    #                theta_u = tline_theta_arr_uncomp,
+    #                L=L_arr,
+    #                Z=z_arr,
+    #                beta=beta_arr,
+    #                beta_p=beta_p,
+    #                R_active_val=calculate_PA_impedance(ZPA_res, g_arr[0], g_arr[1], dw),
+    #                elim_inverter = elim_inverter)
+
+
 
 
 @dataclass
@@ -197,715 +210,346 @@ class Network:
     g_arr: np.ndarray
     dw: float
     J: np.ndarray
-    CC: np.ndarray
     C: np.ndarray
-    Cu: np.ndarray
-    theta: np.ndarray
-    theta_u: np.ndarray
-    L: np.ndarray
     Z: np.ndarray
-    beta: np.ndarray
-    beta_p: float
-    R_active_val: float
-    elim_inverter: bool
+    power_G_db: float
 
     def __post_init__(self):
-        self.Ftypes = [
-            'cap_cpld_lumped',
-            'tline_cpld_lumped',
-            'tline_cpld_l4',
-            'tline_cpld_l2',
-            'cap_cpld_l4',
-            'ideal']
+        self.coupler_dict = {
+            'cap': CapCoupler,
+            'l4': TlineCoupler
+        }
+        self.resonator_dict = {
+            'core': CoreResonator,
+            'l4': TlineL4Resonator,
+            'lumped': LumpedResonator}
         self.net_size = self.J.size - 1
+        self.signal_omega_sym = sp.symbols('omega_s')
+        self.idler_omega_sym = sp.symbols('omega_i')
 
-    def debug_printout(self):
-        """
-        Prints out the network parameters
-        """
-        print(self.Ftype)
-        print(self.Z)
-        print("if l4:")
-        print(np.array(self.Z) * np.pi / 4)
-        print("if l2:")
-        print(np.array(self.Z) * np.pi / 2)
-        print('net TLINE Zs: ')
-        print([el.Zval for el in self.net_elements if el.__class__.__name__ == 'TLINE'])
-        print('net TLINE Thetas: ')
-        print([el.theta_val for el in self.net_elements if el.__class__.__name__ == 'TLINE'])
-        print('net Cs: ')
-        print([el.val for el in self.net_elements if el.__class__.__name__ == 'capacitor'])
-        print('net Ls: ')
-        print([el.val for el in self.net_elements if el.__class__.__name__ == 'inductor'])
-        # [display(i, el.__class__.__name__) for (i, el) in enumerate(self.net_elements)]
-        # [display(el) for (i, el) in enumerate(self.ABCD_mtxs)]
-        # display(self.net_subs)
 
-    def lumped_res(self, n: int, net_size, omega_sym: sp.Symbol, include_inductor=True, compensated=False,
-                   conjugate=False):
-        """
-        Adds a lumped resonator to the network
-        :param n: location of the resonator in the network, this will be used to name the elements and assign the values
-        to variables
-        :param net_size: number of resonators in the network. This is actually unused in this function, but is used in
-        the lumped_res_compensated function
-        :param omega_sym: the symbol for the angular frequency
-        :param include_inductor: whether to include an inductor in the resonator. This is used for the first resonator
-        in the network, which has the parametric inverter element that includes the inductor
-        :param compensated: whether the capactiors in the resonator are compensated by coupling caps or not
-        :return:
-        """
-        if include_inductor:
-            ind_symbol = sp.symbols(f'L_{n}', positive=True)
-            ind_val = self.L[n]
-            ind_el = Inductor(omega_sym, ind_symbol, ind_val)
-            self.net_elements.insert(0, ind_el)
-            if conjugate:
-                self.ABCD_mtxs.insert(0, sp.conjugate(ind_el.ABCDshunt()))
-            else:
-                self.ABCD_mtxs.insert(0, ind_el.ABCDshunt())
-            self.net_subs.insert(0, (ind_symbol, ind_val))
 
-        cap_symbol = sp.symbols(f'C_{n}', positive=True)
-        if compensated:
-            cap_val = self.C[n]
-        else:
-            cap_val = self.Cu[n]
-        cap_el = Capacitor(omega_sym, cap_symbol, cap_val)
-        print("inserting cap el at ", n)
-
-        self.net_elements.insert(0, cap_el)
-        if conjugate:
-            self.ABCD_mtxs.insert(0, sp.conjugate(cap_el.ABCDshunt()))
-        else:
-            self.ABCD_mtxs.insert(0, cap_el.ABCDshunt())
-        self.net_subs.insert(0, (cap_symbol, cap_val))
-        Zres_symbol = sp.symbols(f"Zr_{n}", positive=True)
-        omega_str = f"omega_r_{n}"
-        omega_res_symbol = sp.symbols(omega_str, positive=True)
-        self.parameter_subs += [(cap_symbol, 1 / (Zres_symbol * omega_res_symbol))]
-        self.res_omega_symbols.append(omega_res_symbol)
-        self.res_Z_symbols.append(Zres_symbol)
-        if include_inductor: self.parameter_subs += [(ind_symbol, Zres_symbol / omega_res_symbol)]
-
-    def tline_res(self, n, net_size, omega_sym, res_type='lambda4', use_approx=False, conjugate=False, compensated = False):
-
-        """
-        Adds a transmission line resonator to the network
-        :param n: same as in lumped_res
-        :param net_size:  same as in lumped_res
-        :param omega_sym:  same as in lumped_res
-        :param res_type: the type of TLINE resonator to add, either 'lambda4' or 'lambda2'
-        :param use_approx: This is used if you want to truncate the trigonometric functions in the TLINE ABCD matrix
-        to a certain order.
-        :return:
-        """
-
-        res_types = ['lambda4_shunt', 'lambda2_shunt']
-        # TODO: add 'lambda2_series'
-        if res_type not in res_types:
-            raise Exception("resonator type must be 'lambda4' or 'lambda2' ")
-
-        tline_omega0_val = self.omega0_val
-        tline_Z_symbol, tline_theta_symbol, tline_omega0_symbol = sp.symbols(f'Zr_{n}, theta_r_{n}, omega_r_{n}',
-                                                                             positive=True)
-
-        if res_type == 'lambda4_shunt':
-            # print('shunt l4')
-            if compensated:
-                tline_Z_val = self.Z[n] * (np.pi / 4)
-                tline_theta_val = self.theta[n]
-            else:
-                tline_Z_val = self.Z[n] * (np.pi / 4)
-                tline_theta_val = self.theta_u[n]
-
-            tline_el = Tline(
-                omega_sym,
-                tline_Z_symbol,
-                tline_theta_symbol,
-                tline_omega0_symbol,
-                tline_Z_val,
-                tline_theta_val,
-                tline_omega0_val)
-            if conjugate:
-                self.ABCD_mtxs.insert(0, sp.conjugate(tline_el.abcd_shunt_short(use_approx=use_approx)))
-            else:
-                self.ABCD_mtxs.insert(0, tline_el.abcd_shunt_short(use_approx=use_approx))
-
-        elif res_type == 'lambda2_shunt':
-            # print('shunt l2')
-            tline_Z_val = self.Z[n] * (np.pi / 2)
-            tline_theta_val = sp.pi
-            tline_el = Tline(
-                omega_sym,
-                tline_Z_symbol,
-                tline_theta_symbol,
-                tline_omega0_symbol,
-                tline_Z_val,
-                tline_theta_val,
-                tline_omega0_val)
-            if conjugate:
-                self.ABCD_mtxs.insert(0, sp.conjugate(tline_el.abcd_shunt_open(use_approx=use_approx)))
-            else:
-                self.ABCD_mtxs.insert(0, tline_el.abcd_shunt_open(use_approx=use_approx))
-        else:
-            raise Exception('error in TLINE type')
-
-        self.net_elements.insert(0, tline_el)
-        self.net_subs.insert(0, (tline_theta_symbol, tline_theta_val))
-        self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
-        self.net_subs.insert(0, (tline_omega0_symbol, tline_omega0_val))
-
-    def cap_cpld_lumped_unit(self, n, net_size, omega_sym,
-                             include_inductor=True,
-                             conjugate=False,
-                             inv_corr_factor = 1):
-        """
-        Adds a lumped element resonator and a coupling capacitor in series to the network
-        :param n: same as in lumped_res
-        :param net_size: same as in lumped_res
-        :param omega_sym: same as in lumped_res
-        :param include_inductor: same as in lumped_res
-        :return:
-        """
-        # resonator
-        self.lumped_res(n, net_size, omega_sym,
-                        include_inductor=include_inductor,
-                        compensated=True, conjugate=conjugate)
-        # coupler
-        if n != net_size or self.elim_inverter == False:  # all these have eliminated port inverters
-            cpl_symbol = sp.symbols(f'Cc_{n}', positive=True)
-            cpl_val = self.CC[n]*inv_corr_factor
-            cpl_el = Capacitor(omega_sym, cpl_symbol, cpl_val)
-            self.net_elements.insert(0, cpl_el)
-            self.net_subs.insert(0, (cpl_symbol, cpl_val))
-            print()
-            if conjugate:
-                self.ABCD_mtxs.insert(0, sp.conjugate(cpl_el.ABCDseries()))
-            else:
-                self.ABCD_mtxs.insert(0, cpl_el.ABCDseries())
-
-    def tline_cpld_lumped_unit(self, n, net_size, omega_sym,
-                               include_inductor=True,
-                               tline_inv_Z_corr_factor=1, use_approx=False, conjugate=False):
+    def gen_net_by_type(self, resonator_type_list, coupler_type_list, draw=True):
         '''
-        Adds a lumped element resonator and a coupling capacitor in series to the network
-        :param n: same as in lumped_res
-        :param net_size: same as in lumped_res
-        :param omega_sym: same as in lumped_res
-        :param include_inductor: same as in lumped_res
-        :param tline_inv_Z_corr_factor: This is used to correct the impedance of the transmission line resonator.
-        This is because the impedance of a transmission line resonator is not the same as the characteristic impedance
-        of the line it is made out of. Derivation here:
-        https://colab.research.google.com/drive/15clNBBCLazeFt3JM8UBDtSIJNKeAENR_?usp=sharing
-        '''
-        # resonator
-        self.lumped_res(n, net_size, omega_sym,
-                        include_inductor=include_inductor,
-                        compensated=False, conjugate=conjugate)
-        # coupler
-        if n != net_size or self.elim_inverter == False:  # all these have eliminated port inverters
-
-            tline_Z_symbol, tline_theta_symbol, tline_omega_symbol = sp.symbols(f'Z_{n}, theta_{n}, omega_{n}',
-                                                                                positive=True)
-            tline_Z_val = 1 / self.J[n] * tline_inv_Z_corr_factor
-            tline_theta_val = sp.pi / 2
-            tline_omega_val = self.omega0_val
-
-            tline_el = Tline(omega_sym,
-                             tline_Z_symbol, tline_theta_symbol,
-                             tline_omega_symbol,
-                             tline_Z_val,
-                             tline_theta_val,
-                             tline_omega_val)
-
-            self.net_elements.insert(0, tline_el)
-            if conjugate:
-                self.ABCD_mtxs.insert(0, sp.conjugate(tline_el.abcd_series(use_approx=use_approx)))
-            else:
-                self.ABCD_mtxs.insert(0, tline_el.abcd_series(use_approx=use_approx))
-            self.net_subs.insert(0, (tline_theta_symbol, tline_theta_val))
-            self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
-            self.net_subs.insert(0, (tline_omega_symbol, tline_omega_val))
-
-    def tline_cpld_tline_unit(self, n, net_size, omega_sym,
-                              tline_inv_Z_corr_factor=1,
-                              tline_res_type='lambda4_shunt',
-                              use_approx=False, conjugate=False):
-        '''
-        Adds a transmission line resonator and a lambda/4 inverter in series to the network
-        :param n: same as in lumped_res
-        :param net_size: same as in lumped_res
-        :param omega_sym: same as in lumped_res
-        :param tline_inv_Z_corr_factor: same as in tline_cpld_lumped_unit
-        :param tline_res_type: same as in tline_cpld_lumped_unit
-        :param use_approx: same as in tline_cpld_lumped_unit
-        :return:
-        '''
-        # resonator
-        self.tline_res(n, net_size, omega_sym,
-                       res_type=tline_res_type, conjugate=conjugate)
-        # coupler
-        if n != net_size or self.elim_inverter == False:  # all these have eliminated port inverters
-
-            tline_Z_symbol, tline_theta_symbol, tline_omega_symbol = sp.symbols(f'Z_{n}, theta_{n}, omega_{n}',
-                                                                                positive=True)
-            tline_Z_val = 1 / self.J[n] * tline_inv_Z_corr_factor
-            tline_theta_val = sp.pi / 2
-            tline_omega_val = self.omega0_val
-
-            tline_el = Tline(omega_sym,
-                             tline_Z_symbol, tline_theta_symbol,
-                             tline_omega_symbol,
-                             tline_Z_val,
-                             tline_theta_val,
-                             tline_omega_val)
-
-            self.net_elements.insert(0, tline_el)
-            self.ABCD_mtxs.insert(0, tline_el.abcd_series(use_approx=use_approx))
-            self.net_subs.insert(0, (tline_theta_symbol, tline_theta_val))
-            self.net_subs.insert(0, (tline_Z_symbol, tline_Z_val))
-            self.net_subs.insert(0, (tline_omega_symbol, tline_omega_val))
-
-    def cap_cpld_tline_unit(self, n, net_size, omega_sym,
-                              inv_corr_factor=1,
-                              tline_res_type='lambda4_shunt',
-                              use_approx=False, conjugate=False):
-        '''
-        Adds a transmission line resonator and a lambda/4 inverter in series to the network
-        :param n: same as in lumped_res
-        :param net_size: same as in lumped_res
-        :param omega_sym: same as in lumped_res
-        :param tline_inv_Z_corr_factor: same as in tline_cpld_lumped_unit
-        :param tline_res_type: same as in tline_cpld_lumped_unit
-        :param use_approx: same as in tline_cpld_lumped_unit
-        :return:
-        '''
-        # resonator
-        self.tline_res(n, net_size, omega_sym,
-                       res_type=tline_res_type, conjugate=conjugate, compensated = True, use_approx=use_approx)
-        # coupler
-        if n != net_size or self.elim_inverter == False:  # all these have eliminated port inverters
-            cpl_symbol = sp.symbols(f'Cc_{n}', positive=True)
-            cpl_val = self.CC[n] * inv_corr_factor
-            cpl_el = Capacitor(omega_sym, cpl_symbol, cpl_val)
-            self.net_elements.insert(0, cpl_el)
-            self.net_subs.insert(0, (cpl_symbol, cpl_val))
-            if conjugate:
-                self.ABCD_mtxs.insert(0, sp.conjugate(cpl_el.ABCDseries()))
-            else:
-                self.ABCD_mtxs.insert(0, cpl_el.ABCDseries())
-
-
-
-    def circuit_unit(self, Ftype, n, net_size, omega_sym,
-                     include_inductor=True, tline_inv_Z_corr_factor=1, use_approx=False, conjugate=False):
-        """
-        Adds a circuit unit to the network, this is a unit that is made out of a resonator and a coupler.
-        Makes me wish for switch cases in python.
-        :param Ftype: type of circuit unit, choose from 'cap_cpld_lumped', 'tline_cpld_lumped', 'tline_cpld_tline'
-        :param n: same as in lumped_res
-        :param net_size: same as in lumped_res
-        :param omega_sym: same as in lumped_res
-        :param include_inductor: same as in lumped_res
-        :param tline_inv_Z_corr_factor: same as in tline_cpld_lumped_unit
-        :param use_approx: same as in tline_cpld_lumped_unit
-        :return:
-        """
-        Ftype = Ftype.lower()
-        if Ftype not in self.Ftypes:
-            raise Exception(f"type not incorporated, choose from {self.Ftypes}")
-
-        if Ftype == 'cap_cpld_lumped' or (Ftype == 'cap_cpld_l4' and n == 0):
-            print("Inserting cap cpld lumped unit at " + str(n) + " of " + str(net_size))
-            self.cap_cpld_lumped_unit(n, net_size, omega_sym,
-                                      include_inductor=include_inductor,
-                                      conjugate=conjugate,
-                                      inv_corr_factor = tline_inv_Z_corr_factor)
-        elif Ftype == 'tline_cpld_lumped' or (Ftype == 'tline_cpld_l4' and n == 0) or (Ftype == 'tline_cpld_l2' and n == 0):
-            print("Inserting tline cpld lumped unit at " + str(n) + " of " + str(net_size))
-            self.tline_cpld_lumped_unit(
-                n, net_size, omega_sym,
-                include_inductor=include_inductor,
-                tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx,
-                conjugate=conjugate)
-
-        elif Ftype == 'tline_cpld_l4':
-            print("Inserting tline cpld tline unit at " + str(n) + " of " + str(net_size))
-            self.tline_cpld_tline_unit(
-                n, net_size, omega_sym,
-                tline_res_type='lambda4_shunt',
-                tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx,
-                conjugate=conjugate)
-
-        elif Ftype == 'tline_cpld_l2':
-            print("Inserting tline cpld tline unit at " + str(n) + " of " + str(net_size))
-            self.tline_cpld_tline_unit(
-                n, net_size, omega_sym,
-                tline_res_type='lambda2_shunt',
-                tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx,
-                conjugate=conjugate
-            )
-        elif Ftype == 'cap_cpld_l4':
-            print("Inserting cap cpld tline unit at " + str(n) + " of " + str(net_size))
-            self.cap_cpld_tline_unit(
-                n, net_size, omega_sym,
-                tline_res_type='lambda4_shunt',
-                inv_corr_factor=tline_inv_Z_corr_factor,
-                use_approx=use_approx,
-                conjugate=conjugate)
-        else:
-            raise Exception('error in circuit_unit filter type')
-
-    def gen_net_by_type(self, Ftype, active=True, core_inductor=False, method='pumpistor', tline_inv_Z_corr_factor=1,
-                        use_approx=True, draw=True):
-        self.Ftype = Ftype
-        self.net_elements = []
-        self.net_subs = []
-        self.parameter_subs = []  # these are for analysis, and they convert resonators to LC combinations if they are lumped
-        self.res_omega_symbols = []
-        self.res_Z_symbols = []
-        self.ABCD_mtxs = []
-        self.Z0 = sp.symbols('Z0')
-        self.name = Ftype
-        self.tline_inv_Z_corr_factor = tline_inv_Z_corr_factor
-
-        '''
-        all these elements are ordered from the port outward.
+        all these elements are ordered from the port inward.
         The core resonator is last.
-        Then if you have it set to active, it will
-        # 1.) remove the inductor shunt ABCD from the ABCD matrix array
-        2.) reverse the array
-        3.) add the inverter ABCD mtx to the beginning,
-        4.) apply the same function but with w_s-w_p
-        # 5.) remove the inductor again (the inverter ABCD mtx serves this purpose)
-        6.) reverse the array again to restore the original order
         '''
+        self.coupler_types = [s.lower() for s in coupler_type_list]
+        self.resonator_types = [s.lower() for s in resonator_type_list]
+        assert self.resonator_types[0] == 'core'
 
-        inv_ind_sym, alpha, phi, R_active = sp.symbols('L_{nl}, alpha, phi, R_{active}', real=True)
-        signal_omega_sym = sp.symbols('omega_s', real=True)
-        idler_omega_sym = sp.symbols('omega_i', real=True)
-        self.signal_omega_sym = signal_omega_sym
-        self.idler_omega_sym = idler_omega_sym
+        self.ABCD_methods = []
+        self.circuit_elements = []
 
         net_size = self.J.size - 1
-        for n in range(net_size + 1):
+
+        self.omega_0_sym = sp.symbols('omega_0')
+        self.omega_s_sym = sp.symbols('omega_s')
+        self.omega_i_sym = sp.symbols('omega_i')
+        self.z_core_sym = sp.symbols('Z_{core}')
+        self.jpa_sym = sp.symbols('J_pa')
+
+        #this loop will construct the circuit and compile ABCD methods to be called by the scattering and impedance methods
+        for n, [coupler_type, resonator_type] in enumerate(list(zip(self.coupler_types, self.resonator_types))):
+            if resonator_type not in self.resonator_dict.keys():
+                raise Exception("Resonator type not recognized")
+            if coupler_type not in self.coupler_dict.keys():
+                raise Exception("Coupler type not"
+                                " recognized")
 
             if n == 0:
-                self.circuit_unit(Ftype, n, net_size, signal_omega_sym,
-                                  include_inductor=core_inductor,
-                                  tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                  use_approx=use_approx)
-            else:
-                self.circuit_unit(Ftype, n, net_size, signal_omega_sym,
-                                  include_inductor=True,
-                                  tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                  use_approx=use_approx)
-            print("net subs at " + str(n))
-            print(self.net_subs)
-        #   class DegenerateParametricInverter_Amp:
-        # omega0_val: float
-        # L: sp.Symbol
-        # R_active: sp.Symbol
-        # w: float
-        # g_arr: np.ndarray
-        self.net_subs_before_idler = self.net_subs
-        if active == True:
-            Jpa_sym = sp.symbols("J_{pa}")
-            R_active = sp.symbols('R_{pump}')
-            self.inv_el = DegenerateParametricInverterAmp(
-                omega0_val=self.omega0_val,
-                omega1=signal_omega_sym,
-                omega2=idler_omega_sym,
-                Jpa_sym=Jpa_sym,
-                L=inv_ind_sym,
-                R_active=R_active
-            )
-            if method == 'pumped_mutual':
-                self.net_elements.append(self.inv_el.signal_inductor)
-                self.net_elements.append(self.inv_el)
-                self.net_elements.append(self.inv_el.idler_inductor)
+                #the core resonator has different arguments than the other resonators
+                # start with the core resonator and coupler
+                core_res = CoreResonator(
+                    n=0,
+                    omega_s_sym = self.omega_s_sym,
+                    omega_i_sym = self.omega_i_sym,
+                    omega0_sym = self.omega_0_sym,
+                    omega0_val = self.omega0_val,
+                    z_sym = self.z_core_sym,
+                    z_val = self.Z[0],
+                    jpa_sym = self.jpa_sym,
+                    power_G_db = self.power_G_db,
+                    g_arr = self.g_arr,
+                    net_size = net_size,
+                    dw = self.dw
+                )
 
-                self.ABCD_mtxs.append(self.inv_el.abcd_signal_inductor_shunt())
-                self.ABCD_mtxs.append(self.inv_el.abcd_inverter_shunt())
-                self.ABCD_mtxs.append(self.inv_el.abcd_idler_inductor_shunt())
+                core_coupler_s = self.coupler_dict[self.coupler_types[0]](
+                    n=0,
+                    omega_sym = self.omega_s_sym,
+                    omega0_sym = self.omega_0_sym,
+                    omega0_val = self.omega0_val,
+                    j_val = self.J[0],
+                    signal_or_idler_flag = 'signal'
+                )
+                core_coupler_i = self.coupler_dict[self.coupler_types[0]](
+                    n=0,
+                    omega_sym=self.omega_s_sym,
+                    omega0_sym=self.omega_0_sym,
+                    omega0_val=self.omega0_val,
+                    j_val=self.J[0],
+                    signal_or_idler_flag='idler'
+                )
+                self.circuit_elements.insert(0, core_coupler_i)
+                self.circuit_elements.insert(0, core_res)
+                self.circuit_elements.insert(0, core_coupler_s)
+            elif n<=net_size:
+                resonator_class = self.resonator_dict[resonator_type]
+                coupler_class = self.coupler_dict[coupler_type]
+                z_sym = sp.symbols('Z_' + str(n))
+                print("coupler class: ", coupler_class.__name__)
+                print("resonator class: ", resonator_class.__name__)
+                res = resonator_class(
+                    n = n,
+                    omega_sym = self.omega_s_sym,
+                    omega0_sym = self.omega_0_sym,
+                    omega0_val = self.omega0_val,
+                    z_sym = z_sym,
+                    z_val = self.Z[n],
+                    signal_or_idler_flag = 'signal'
+                )
+                coupler = coupler_class(
+                    n = n,
+                    omega_sym = self.omega_s_sym,
+                    omega0_sym = self.omega_0_sym,
+                    omega0_val = self.omega0_val,
+                    j_val = self.J[n],
+                    signal_or_idler_flag='signal'
+                )
+                self.circuit_elements.insert(0, res)
+                self.circuit_elements.insert(0, coupler)
+            elif n>net_size:
+                resonator_class = self.resonator_dict[resonator_type]
+                coupler_class = self.coupler_dict[coupler_type]
+                z_sym = sp.symbols('Z_' + str(n))
 
-                [l.reverse() for l in [self.net_elements, self.ABCD_mtxs]]
-                for n in range(net_size + 1):
-                    if n == 0:
-                        self.circuit_unit(Ftype, n, net_size, idler_omega_sym, include_inductor=core_inductor,
-                                          tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                          use_approx=use_approx, conjugate=False)
-                    else:
-                        self.circuit_unit(Ftype, n, net_size, idler_omega_sym, include_inductor=True,
-                                          tline_inv_Z_corr_factor=tline_inv_Z_corr_factor,
-                                          use_approx=use_approx, conjugate=False)
+                res = resonator_class(
+                    n=n,
+                    omega_sym=self.omega_s_sym,
+                    omega0_sym=self.omega_0_sym,
+                    omega0_val=self.omega0_val,
+                    z_sym=z_sym,
+                    z_val=self.Z[n-net_size],
+                    signal_or_idler_flag='idler'
+                )
+                coupler = coupler_class(
+                    n=n,
+                    omega_sym=self.omega_s_sym,
+                    omega0_sym=self.omega_0_sym,
+                    omega0_val=self.omega0_val,
+                    j_val=self.J[n-net_size],
+                    signal_or_idler_flag = 'idler'
+                )
+                self.circuit_elements.append(res)
+                self.circuit_elements.append(coupler)
 
-                [l.reverse() for l in [self.net_elements, self.ABCD_mtxs]]
+            print("Circuit elements at ", n, ":", [el.__class__.__name__ for el in self.circuit_elements])
+        #compensate the last coupler for a real termination on one side
+        self.circuit_elements[0].synthesize()
+        self.circuit_elements[0].compensate_end_capacitor(50)
+        self.circuit_elements[-1].synthesize()
+        self.circuit_elements[-1].compensate_end_capacitor(50)
 
-            elif method == 'pumpistor':
+        #now that all the elements are concatenated, we can compensate all the resonators
+        for n, el in enumerate(self.circuit_elements):
+            if el.__class__.__name__ == 'CoreResonator':
+                el.compensate_for_couplers(self.circuit_elements[n + 1])
+            elif el.__class__.__bases__[0].__name__ == 'Resonator':
+                # print("compensating resonator at ", n)
+                # print("name of resonator: ", el.__class__.__name__)
+                el.compensate_for_couplers(self.circuit_elements[n-1], self.circuit_elements[n+1])
 
-                self.net_elements.append(self.inv_el)
-                self.ABCD_mtxs.append(self.inv_el.abcd_pumpistor().subs(alpha, 0))
+        #now we can synthesize all the rest of the elements
+        for el in self.circuit_elements[1:-1]:
+            el.synthesize()
+            # print("Synthesized ", el.__class__.__name__)
+        #and finally get all the abcd methods
+        for el in self.circuit_elements:
+            self.ABCD_methods.append(el.abcd_function)#this automatically gets the order right
 
-            if draw == True:
-                draw_net_by_type(self, self.Ftype)
+    #now we need to create a function that can get the total ABCD matrix of the network
+    def total_ABCD_func(self, omega_s, omega_i):
+        print("Generating ABCD Matrices...")
+        self.ABCD_mtxs_vs_frequency = [abcd(omega_s, omega_i) for abcd in self.ABCD_methods]
+        # print("ABCD matrices vs frequency: ", self.ABCD_mtxs_vs_frequency)
 
-    def inverter_no_detuning_subs(self, omega: sp.Symbol):
-        """
-        Generates the substitution dictionary for an inverter with no detuning
-        :param omega: sympy symbol for the angular frequency
-        :return: list of tuples of the form (symbol, value) for the .subs() method
-        """
-        self.omega_from_inverter = omega
-        return [(self.Z0, 50),
-                # (self.inv_el.phi, 0),
-                (self.inv_el.omega1, omega),
-                (self.inv_el.omega2, omega - 2 * self.omega0_val),
-                (self.inv_el.L, self.L[0])
-                ]
+        return compress_abcd_numerical(self.ABCD_mtxs_vs_frequency) #omega_s just for length
 
-    def calculate_Smtx(self, Z0):
-        """
-        Calculates the scattering matrix for the network
-        :param Z0: characteristic impedance of the environment
-        :return:
-        """
-        total_ABCD = self.total_ABCD()
-        Smtx = abcd_to_s(total_ABCD, Z0)
-        return Smtx
+    def Smtx_func(self, omega_s, omega_i):
+        ABCD_mtx = np.moveaxis(self.total_ABCD_func(omega_s, omega_i), 0, -1)
+        return abcd_to_s(ABCD_mtx, 50)
 
-    def calculate_ABCD(self):
-        return self.total_ABCD()
-
-    def plot_scattering(self, f_arr_GHz, additional_net_subs=[],
+    def plot_scattering(self, f_arr_GHz, f_p_GHz,
                         fig=None,
                         linestyle='solid',
                         primary_color='k',
-                        secondary_color='grey',
-                        label_prepend='',
-                        vary_pump=True,
-                        method='pumpistor',
-                        focus=True,
-                        debug=False):
-        omega = sp.symbols('omega')
-        if debug: print('Substituting all network values into component ABCD mtxs...')
-        self.net_subs += self.inverter_no_detuning_subs(omega) + additional_net_subs
-        self.plot_ABCD_mtxs = [ABCD.subs(self.net_subs) for ABCD in self.ABCD_mtxs]
-        if debug: print('Calculating symbolic scattering matrix...')
-        # Smtx = self.calculate_Smtx(self.Z0)
-        if debug: print('Calculating numerical scattering matrix...')
-        SmtxN = abcd_to_s(compress_abcd_array(self.plot_ABCD_mtxs), 50)
-        if debug: print('plotting results...')
-        if method == 'pumpistor':
-            Smtx_func = sp.lambdify([omega, self.inv_el.R_active], SmtxN)
-        elif method == 'pumped_mutual':
-            Smtx_func = sp.lambdify([omega, self.inv_el.Jpa_sym], SmtxN)
-        omega_arr = f_arr_GHz * 2 * np.pi * 1e9
-
-        net_size = np.size(self.g_arr) - 2
-        if net_size % 2 == 0:
-            j0val = self.dw / self.Z[0] / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(self.g_arr[-1])
-        else:
-            j0val = self.dw / self.Z[0] / self.g_arr[1] / np.sqrt(self.g_arr[0]) / np.sqrt(self.g_arr[-1])
+                        label_prepend=''):
 
         if fig == None:
             fig, ax = plt.subplots()
         else:
             ax = fig.axes[0]
-        if vary_pump:
-            Rvals = np.linspace(-1000, -self.R_active_val, 5)
-            Jvals = np.arange(j0val / 2, 3 / 2 * j0val, j0val / 8)
-        else:
-            Rvals = np.array([-self.R_active_val])
-            Jvals = np.array([j0val])
 
-        if method == 'pumpistor':
-            for i, Rval in enumerate(Rvals):
-                alpha_val = Rval
-                plt_Smtxs = Smtx_func(omega_arr, alpha_val)
-                if focus:
-                    if i == len(Rvals) - 1:
-                        color = primary_color
-                    else:
-                        color = secondary_color
-                else:
-                    color = None
-                ax.plot(f_arr_GHz, 20 * np.log10(np.abs(plt_Smtxs[0, 0])),
-                        label=label_prepend + self.name + '\nR=-' + str(np.round(alpha_val, 1)),
-                        linestyle=linestyle,
-                        color=color
-                        )
-        elif method == 'pumped_mutual':
-            self.j0val = j0val
-            self.Smtx_j0 = Smtx_func(omega_arr, j0val)
-            self.omega_plot_arr = omega_arr
-            for i, Jval in enumerate(Jvals):
-                plt_Smtxs = Smtx_func(omega_arr, Jval)
+        self.omega_s_arr = 2 * np.pi * f_arr_GHz * 1e9
+        self.omega_i_arr = (2 * np.pi * f_arr_GHz * 1e9 - 2 * np.pi * f_p_GHz *1e9)
+        self.Smtx_j0 = self.Smtx_func(self.omega_s_arr, self.omega_i_arr)
 
-                if focus:
-                    if np.round(Jval, 4) == np.round(j0val, 4):
-                        color = primary_color
-                    else:
-                        color = secondary_color
-                else:
-                    color = None
-                ax.plot(f_arr_GHz, 20 * np.log10(np.abs(plt_Smtxs[0, 0])),
-                        label=label_prepend + self.name + '\nJ=' + str(np.round(Jval, 4)),
-                        linestyle=linestyle,
-                        color=color
-                        )
+
+        ax.plot(f_arr_GHz, 20 * np.log10(np.abs(self.Smtx_j0[0, 0])),
+                # label=label_prepend + '\nJ=' + str(np.round(self.jpa_val, 4)),
+                linestyle=linestyle,
+                color=primary_color
+                )
+        ax.legend()
         return fig
-
-    def total_ABCD(self):
-        '''
-        calculates ABCD matrix of the entire network thus far
-        '''
-        return compress_abcd_array(self.ABCD_mtxs)
-
-    def total_passive_ABCD(self, array=True, add_index = 0, debug = False):
-        '''
-        Let's calculate the scattering parameters of the network when the JPA is
-        off. This should be easy, we're just looking at the phase structure of the
-        network, the ABCD matrices are all multiplied together, and then transformed
-        to scattering matrices
-        '''
-        # find out where the hell the inverter is. It could be just about anywhere depending on the network topology
-        inverter_index = \
-        [(i, el) for (i, el) in enumerate(self.net_elements) if type(el) == DegenerateParametricInverterAmp][0][0]
-
-        if array:
-            if debug:
-                print("last ABCD matrix (not included in compression")
-                print(self.ABCD_mtxs[inverter_index+add_index])
-            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index+add_index])
-        else:
-            if debug:
-                print("last ABCD matrix (not included in compression")
-                print(self.ABCD_mtxs[inverter_index - 1+add_index])
-            return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 1+add_index])
-
-    def passive_impedance_seen_from_port(self, add_index=0):
-        '''
-        This function calculates the impedance seen from the outside port.
-        This is just Z00 for a one port network
-        '''
-        ABCD = self.total_passive_ABCD(array=True, add_index = add_index)
-        Z = abcd_to_z(ABCD, self.Z0)
-        return Z[0,0]
-
-    def passive_impedance_seen_from_core_mode(self, add_index=0, debug = False):
-        '''
-        This function calculates the impedance seen from the array port
-        of the network, without including the array inductance.
-        '''
-
-        ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index, debug = debug)
-        if self.Ftype == 'cap_cpld_lumped' or self.Ftype == 'cap_cpld_l4':
-            negative_first_cap_symbol = sp.symbols('C_comp')
-            negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
-            ABCD_comp = negative_first_cap.ABCDshunt()
-            self.net_subs.append((negative_first_cap_symbol, negative_first_cap.val))
-            ABCD_total = ABCD * ABCD_comp
-        else:
-            ABCD_total = ABCD
-        Z = abcd_to_z(ABCD_total, self.Z0)
-        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
-
-    def passive_impedance_seen_from_array(self, add_index = 0):
-        '''
-        This function calculates the impedance seen from the array port
-        of the network including the array inductance
-        '''
-        ABCD = self.total_passive_ABCD(array=False, add_index = add_index)
-
-        Z = abcd_to_z(ABCD, self.Z0)
-
-        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
-
-    def passive_impedance_seen_from_inverter(self, add_index = 0, debug = False):
-        '''
-        This function calculates the impedance seen from the array port
-        of the network including the array inductance
-        '''
-        ABCD = self.total_passive_ABCD(array=True, add_index = add_index, debug = debug)
-
-        Z = abcd_to_z(ABCD, self.Z0)
-
-        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
-
-    def analytical_impedance_to_numerical_impedance_from_array_inductance(self, analytical_impedance):
-        '''
-        This function converts an analytical impedance to an interpolated impedance by lambdifying the analytical
-        impedance as a function of the array inductance and frequency
-        '''
-        Lvary = sp.symbols("L_v")
-        Z_with_subs = analytical_impedance.subs(self.inv_el.signal_inductor.symbol, Lvary).subs(self.net_subs)
-        Z_func = sp.lambdify((self.omega_from_inverter, Lvary), Z_with_subs)
-        # this should return a 1xN array of values of the total complex input impedance
-        return Z_func
-
-    def modes_as_function_of_inductance(self, L_arr, omega_arr, debug=False, maxiter = 10000):
-        '''
-        Takes in an array of inductance values and frequencies
-        returns the modes as a function of the inductance of the array inductor. In the format
-        of the return of find_modes_from_input_impedance
-        '''
-
-        res_list = []
-        res_params_list = []
-        impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(
-            self.passive_impedance_seen_from_inverter()
-        )
-        for Lval in L_arr:
-            if debug: print("Inductance value: ", Lval * 1e12, " pH")
-            Z_arr = impedance_function(omega_arr, Lval * np.ones_like(omega_arr))
-            res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug, maxiter = maxiter)
-            res_params = mode_results_to_device_params(res)
-            res_list.append(res)
-            res_params_list.append(res_params)
-        return res_list, res_params_list
-
-    def filter_impedance_analysis(self, omega_scale = 1, debug = False):
-        passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
-                                     1 / self.passive_impedance_seen_from_inverter(add_index=0, debug = debug).subs(self.net_subs))
-        passive_omega_arr = np.linspace(self.omega0_val-2*np.pi*1e9*omega_scale, self.omega0_val+2*np.pi*1e9*omega_scale, 1001)
-        fig, ax = plt.subplots()
-        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
-        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
-        ax.grid()
-        ax.legend()
-        ax.set_title("Admittance from inverter")
-        plt.show()
-
-        passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
-                                              1 / self.passive_impedance_seen_from_core_mode(add_index=0, debug = debug).subs(
-                                                  self.net_subs))
-        passive_omega_arr = np.linspace(self.omega0_val - 2 * np.pi * 1e9 * omega_scale,
-                                        self.omega0_val + 2 * np.pi * 1e9 * omega_scale, 1001)
-        fig, ax = plt.subplots()
-        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
-        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
-        ax.grid()
-        ax.legend()
-        ax.set_title("Admittance from array resonator")
-        plt.show()
-
-        passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
-                                     self.passive_impedance_seen_from_core_mode(debug = debug).subs(self.net_subs))
-
-        fig, ax = plt.subplots()
-        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
-        ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).imag, label='imag')
-        print("Real impedance seen on-resonance: ", (passive_Z_func_from_array(self.omega0_val)).real)
-        print("Imaginary impedance seen on-resonance: ", (passive_Z_func_from_array(self.omega0_val)).imag)
-        print("Quality factor computed with Re[Z_ext]/Z_res: ", (passive_Z_func_from_array(self.omega0_val)).real / self.Z[0])
-        # ax.set_ylim(0, 500)
-        ax.grid()
-        ax.set_title("Impedance seen from array resonator")
-        ax.legend()
-        plt.show()
+    #
+    # def total_ABCD(self):
+    #     '''
+    #     calculates ABCD matrix of the entire network thus far
+    #     '''
+    #     return compress_abcd_array(self.ABCD_mtxs)
+    #
+    # def total_passive_ABCD(self, array=True, add_index = 0, debug = False):
+    #     '''
+    #     Let's calculate the scattering parameters of the network when the JPA is
+    #     off. This should be easy, we're just looking at the phase structure of the
+    #     network, the ABCD matrices are all multiplied together, and then transformed
+    #     to scattering matrices
+    #     '''
+    #     # find out where the hell the inverter is. It could be just about anywhere depending on the network topology
+    #     inverter_index = \
+    #     [(i, el) for (i, el) in enumerate(self.net_elements) if type(el) == DegenerateParametricInverterAmp][0][0]
+    #
+    #     if array:
+    #         if debug:
+    #             print("last ABCD matrix (not included in compression")
+    #             print(self.ABCD_mtxs[inverter_index+add_index])
+    #         return compress_abcd_array(self.ABCD_mtxs[0:inverter_index+add_index])
+    #     else:
+    #         if debug:
+    #             print("last ABCD matrix (not included in compression")
+    #             print(self.ABCD_mtxs[inverter_index - 1+add_index])
+    #         return compress_abcd_array(self.ABCD_mtxs[0:inverter_index - 1+add_index])
+    #
+    # def passive_impedance_seen_from_port(self, add_index=0):
+    #     '''
+    #     This function calculates the impedance seen from the outside port.
+    #     This is just Z00 for a one port network
+    #     '''
+    #     ABCD = self.total_passive_ABCD(array=True, add_index = add_index)
+    #     Z = abcd_to_z(ABCD, self.Z0)
+    #     return Z[0,0]
+    #
+    # def passive_impedance_seen_from_core_mode(self, add_index=0, debug = False):
+    #     '''
+    #     This function calculates the impedance seen from the array port
+    #     of the network, without including the array inductance.
+    #     '''
+    #
+    #     ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index, debug = debug)
+    #     if self.Ftype == 'cap_cpld_lumped' or self.Ftype == 'cap_cpld_l4':
+    #         negative_first_cap_symbol = sp.symbols('C_comp')
+    #         negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
+    #         ABCD_comp = negative_first_cap.ABCDshunt()
+    #         self.net_subs.append((negative_first_cap_symbol, negative_first_cap.val))
+    #         ABCD_total = ABCD * ABCD_comp
+    #     else:
+    #         ABCD_total = ABCD
+    #     Z = abcd_to_z(ABCD_total, self.Z0)
+    #     return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
+    #
+    # def passive_impedance_seen_from_array(self, add_index = 0):
+    #     '''
+    #     This function calculates the impedance seen from the array port
+    #     of the network including the array inductance
+    #     '''
+    #     ABCD = self.total_passive_ABCD(array=False, add_index = add_index)
+    #
+    #     Z = abcd_to_z(ABCD, self.Z0)
+    #
+    #     return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
+    #
+    # def passive_impedance_seen_from_inverter(self, add_index = 0, debug = False):
+    #     '''
+    #     This function calculates the impedance seen from the array port
+    #     of the network including the array inductance
+    #     '''
+    #     ABCD = self.total_passive_ABCD(array=True, add_index = add_index, debug = debug)
+    #
+    #     Z = abcd_to_z(ABCD, self.Z0)
+    #
+    #     return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
+    #
+    # def analytical_impedance_to_numerical_impedance_from_array_inductance(self, analytical_impedance):
+    #     '''
+    #     This function converts an analytical impedance to an interpolated impedance by lambdifying the analytical
+    #     impedance as a function of the array inductance and frequency
+    #     '''
+    #     Lvary = sp.symbols("L_v")
+    #     Z_with_subs = analytical_impedance.subs(self.inv_el.signal_inductor.symbol, Lvary).subs(self.net_subs)
+    #     Z_func = sp.lambdify((self.omega_from_inverter, Lvary), Z_with_subs)
+    #     # this should return a 1xN array of values of the total complex input impedance
+    #     return Z_func
+    #
+    # def modes_as_function_of_inductance(self, L_arr, omega_arr, debug=False, maxiter = 10000):
+    #     '''
+    #     Takes in an array of inductance values and frequencies
+    #     returns the modes as a function of the inductance of the array inductor. In the format
+    #     of the return of find_modes_from_input_impedance
+    #     '''
+    #
+    #     res_list = []
+    #     res_params_list = []
+    #     impedance_function = self.analytical_impedance_to_numerical_impedance_from_array_inductance(
+    #         self.passive_impedance_seen_from_inverter()
+    #     )
+    #     for Lval in L_arr:
+    #         if debug: print("Inductance value: ", Lval * 1e12, " pH")
+    #         Z_arr = impedance_function(omega_arr, Lval * np.ones_like(omega_arr))
+    #         res = find_modes_from_input_impedance(Z_arr, omega_arr, debug=debug, maxiter = maxiter)
+    #         res_params = mode_results_to_device_params(res)
+    #         res_list.append(res)
+    #         res_params_list.append(res_params)
+    #     return res_list, res_params_list
+    #
+    # def filter_impedance_analysis(self, omega_scale = 1, debug = False):
+    #     passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
+    #                                  1 / self.passive_impedance_seen_from_inverter(add_index=0, debug = debug).subs(self.net_subs))
+    #     passive_omega_arr = np.linspace(self.omega0_val-2*np.pi*1e9*omega_scale, self.omega0_val+2*np.pi*1e9*omega_scale, 1001)
+    #     fig, ax = plt.subplots()
+    #     ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
+    #     ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
+    #     ax.grid()
+    #     ax.legend()
+    #     ax.set_title("Admittance from inverter")
+    #     plt.show()
+    #
+    #     passive_Y_func_from_inv = sp.lambdify([self.omega_from_inverter],
+    #                                           1 / self.passive_impedance_seen_from_core_mode(add_index=0, debug = debug).subs(
+    #                                               self.net_subs))
+    #     passive_omega_arr = np.linspace(self.omega0_val - 2 * np.pi * 1e9 * omega_scale,
+    #                                     self.omega0_val + 2 * np.pi * 1e9 * omega_scale, 1001)
+    #     fig, ax = plt.subplots()
+    #     ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).real, label='real')
+    #     ax.plot(passive_omega_arr / 2 / np.pi / 1e9, passive_Y_func_from_inv(passive_omega_arr).imag, label='imag')
+    #     ax.grid()
+    #     ax.legend()
+    #     ax.set_title("Admittance from array resonator")
+    #     plt.show()
+    #
+    #     passive_Z_func_from_array = sp.lambdify([self.omega_from_inverter],
+    #                                  self.passive_impedance_seen_from_core_mode(debug = debug).subs(self.net_subs))
+    #
+    #     fig, ax = plt.subplots()
+    #     ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).real, label='real')
+    #     ax.plot(passive_omega_arr / 2 / np.pi / 1e9, (passive_Z_func_from_array(passive_omega_arr)).imag, label='imag')
+    #     print("Real impedance seen on-resonance: ", (passive_Z_func_from_array(self.omega0_val)).real)
+    #     print("Imaginary impedance seen on-resonance: ", (passive_Z_func_from_array(self.omega0_val)).imag)
+    #     print("Quality factor computed with Re[Z_ext]/Z_res: ", (passive_Z_func_from_array(self.omega0_val)).real / self.Z[0])
+    #     # ax.set_ylim(0, 500)
+    #     ax.grid()
+    #     ax.set_title("Impedance seen from array resonator")
+    #     ax.legend()
+    #     plt.show()
 
