@@ -296,6 +296,11 @@ class DegenerateParametricInverterAmp:
         print("ALPHA = ", alpha)
         Jpa_val_s = 1 / omega_s_arr / Lprime / (1 - alpha) * np.sqrt(alpha)
         Jpa_val_i = 1 / np.abs(omega_i_arr) / Lprime / (1 - alpha) * np.sqrt(alpha)
+
+        Jpa_test = self.dw / self.Zcore / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(self.g_arr[-1])
+        Jpa_val_s = Jpa_test
+        Jpa_val_i = Jpa_test
+
         inv_ABCD = np.array([[0*np.ones_like(omega_s_arr), 1j / np.conjugate(Jpa_val_s)*np.ones_like(omega_s_arr)],
                              [-1j * Jpa_val_i*np.ones_like(omega_s_arr), 0*np.ones_like(omega_s_arr)]])
         return np.moveaxis(inv_ABCD, -1,0)
