@@ -16,11 +16,11 @@ from parametricSynthesis.network_tools.component_ABCD import abcd_to_s
 net_dict = {}
 active_network_prototypes = get_active_network_prototypes()
 passive_network_prototypes = get_passive_network_prototypes()
-f0 = 5e9
+f0 = 6.5e9
 w0 = 2 * np.pi * f0
-dw = 0.135
+dw = 0.2
 # Z_squid = 25
-L_squid = 0.15e-9
+L_squid = 0.37e-9
 # L_squid = w0*Z_squid
 Z_squid = w0 * L_squid
 
@@ -30,16 +30,16 @@ Z_squid = w0 * L_squid
 # coupler_types = ['cap', 'cap', 'cap', 'cap', 'cap', 'cap', 'cap', 'cap', 'cap']
 
 power_G_db = 20
-g_arr = prototype_gs(power_G_db, type = 'chebyshev', n = 3, r_db = 1)
-z_arr = np.array([Z_squid, 20, 30, 50], dtype=float)
-resonator_types = ['core', 'l4', 'l4', 'l4', 'l4']
-coupler_types = ['l4', 'l4', 'l4', 'l4', 'l4']
+g_arr = prototype_gs(power_G_db, type = 'chebyshev', n = 5, r_db = 1)
+z_arr = np.array([Z_squid, 15*4/np.pi, 15*4/np.pi, 15*4/np.pi, 15*4/np.pi, 50], dtype=float)
+resonator_types = ['core', 'l4','l4','l4','l4']
+coupler_types = ['cap', 'l4', 'cap', 'cap','l4']
 
-tline_corr_factor = 1
+inv_corr_factors = [1,1,1,1,1]
 
-net = calculate_network(power_G_db, g_arr, z_arr, f0, dw, L_squid, printout=False, inv_corr_factor=tline_corr_factor)
+net = calculate_network(power_G_db, g_arr, z_arr, f0, dw, L_squid, printout=False)
 
-net.gen_net_by_type(resonator_types, coupler_types, draw=True)
+net.gen_net_by_type(resonator_types, coupler_types, inv_corr_factors, draw=True)
 
 fig, ax = plt.subplots()
 ax.set_title('Gain by pump power and filter type')
@@ -47,7 +47,8 @@ ax.set_title('Gain by pump power and filter type')
 ax.grid()
 
 f_arr_GHz = np.linspace(f0/1e9-1, f0/1e9+1, 10001)
-f_p_GHz = 2*f0/1e9
+delta = 0e-3
+f_p_GHz = 2*f0/1e9-delta
 
 # plt.figure()
 # f_test = 2*np.pi*f_arr_GHz*1e9

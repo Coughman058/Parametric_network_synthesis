@@ -286,23 +286,30 @@ class DegenerateParametricInverterAmp:
     def __post_init__(self):
         self.Zcore = self.omega0_val * self.Lval
         # print(f"Network INGREDIENTS: dw = {self.dw}\nZcore = {self.Zcore}\ng_arr = {self.g_arr}\ng0 = {self.g_arr[0]}\ng1 = {self.g_arr[1]}\ngN+1 = {self.g_arr[-1]}")
-        self.signal_inductor = Inductor(self.omega1, self.L, self.Lval)
-        self.idler_inductor = Inductor(self.omega2, self.L, self.Lval)
+
+        alpha = self.alpha_val_from_matching_params(10 ** self.power_G_db / 10, self.dw, self.g_arr)
+        Lprime = self.Lval
+        print("ALPHA = ", alpha)
+        # Jpa_val_s = 1 / omega_s_arr / Lprime / (1 - alpha) * np.sqrt(alpha)
+        # Jpa_val_i = 1 / np.abs(omega_i_arr) / Lprime / (1 - alpha) * np.sqrt(alpha)
+
+        if np.size(self.g_arr) % 2 == 0:
+            Jpa_test = self.dw / self.Zcore / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(self.g_arr[-1])
+        else:
+            Jpa_test = self.dw / self.Zcore / self.g_arr[1] / np.sqrt(self.g_arr[0]) / np.sqrt(self.g_arr[-1])
+        # Jpa_test = self.dw / self.Zcore / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(self.g_arr[-1])
+        self.Jpa_val_s = Jpa_test
+        self.Jpa_val_i = Jpa_test
+
+        self.signal_inductor = Inductor(self.omega1, self.L, Lprime)
+        self.idler_inductor = Inductor(self.omega2, self.L, Lprime)
 
     def abcd_inverter_shunt(self, omega_s_arr, omega_i_arr):
 
-        alpha = self.alpha_val_from_matching_params(10**self.power_G_db/10, self.dw, self.g_arr)
-        Lprime = self.Lval * (1 - alpha)
-        print("ALPHA = ", alpha)
-        Jpa_val_s = 1 / omega_s_arr / Lprime / (1 - alpha) * np.sqrt(alpha)
-        Jpa_val_i = 1 / np.abs(omega_i_arr) / Lprime / (1 - alpha) * np.sqrt(alpha)
 
-        Jpa_test = self.dw / self.Zcore / self.g_arr[1] / np.sqrt(self.g_arr[0]) * np.sqrt(self.g_arr[-1])
-        Jpa_val_s = Jpa_test
-        Jpa_val_i = Jpa_test
 
-        inv_ABCD = np.array([[0*np.ones_like(omega_s_arr), 1j / np.conjugate(Jpa_val_s)*np.ones_like(omega_s_arr)],
-                             [-1j * Jpa_val_i*np.ones_like(omega_s_arr), 0*np.ones_like(omega_s_arr)]])
+        inv_ABCD = np.array([[0*np.ones_like(omega_s_arr), 1j / np.conjugate(self.Jpa_val_s)*np.ones_like(omega_s_arr)],
+                             [-1j * self.Jpa_val_i*np.ones_like(omega_s_arr), 0*np.ones_like(omega_s_arr)]])
         return np.moveaxis(inv_ABCD, -1,0)
 
     # def dm(self):
