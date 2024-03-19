@@ -15,11 +15,12 @@ inverters_3d = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Paramet
 resonator_core = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\best\core_res_cap_sweep.csv")
 resonators_3d_hf = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\best\res_sweeps_higher_freq.csv")
 amp_cap_cpld_core = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\20240207_Giga_core_sweep.csv")
+resonators_3d_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\best\res_sweeps_NIST.csv")
 
 dep_var_num = 2
 SMAA_cap_cpld_core = False
 amp_tline_res = False
-amp_core_res = True
+amp_core_res = False
 #amp core:
 # constrained optimization, Nd
 if SMAA_cap_cpld_core:

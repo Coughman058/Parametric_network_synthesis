@@ -39,9 +39,9 @@ def interpolate_nd_hfss_mgoal_res(df,
     for i, goalname in enumerate(goalnames):
         ivarcpls = df.to_numpy()[:,0:ivar_num]
         if exclude_columns is not None:
-            print("old cols:", ivarcpls)
+            if verbose: print("old cols:", ivarcpls)
             ivarcpls = np.delete(ivarcpls, exclude_columns, axis = 1)
-            print("new cols:", ivarcpls)
+            if verbose: print("new cols:", ivarcpls)
         dvarlist = df.to_numpy()[:,-dep_var_num+i]
         try:
             interpfunc = LinearNDInterpolator(ivarcpls, dvarlist)
@@ -75,7 +75,7 @@ def display_interpolation_result(interpfuncs, df, exclude_column = None, optimiz
     goalnames = varnames[-dep_var_num:]
     for j in range(dep_var_num):
         interpfunc = interpfuncs[j]
-        print(j)
+        # print(j)
         ax = axs[j]
         goalname = goalnames[j]
         opt_res = optimization[j]
@@ -132,7 +132,7 @@ def display_interpolation_result(interpfuncs, df, exclude_column = None, optimiz
                         else:
                             input_arr.append(np.ones(x1.shape)*opt_res[input_col])
                     input_arr = np.array(input_arr)
-                    print(np.shape(input_arr))
+                    # print(np.shape(input_arr))
                     return interpfunc(*input_arr)
 
                 x = np.linspace(np.min(interpfunc.points[:, primary_cols[0]]), np.max(interpfunc.points[:, primary_cols[0]]), 101)
