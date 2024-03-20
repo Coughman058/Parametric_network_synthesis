@@ -6,6 +6,8 @@ from typing import Union
 from skrf.circuit import Circuit
 from skrf.network import Network
 from tqdm import tqdm
+import schemdraw
+import schemdraw.elements as elm
 '''
 we need classes for each circuit element, in particular, functions that can
 leverage sympy to give symbolic scattering information would be very helpful
@@ -406,6 +408,20 @@ class LumpedResonator(Resonator):
             omega = omega_i_arr
         return self.ind_el.ABCDshunt_function(omega) @ self.cap_el.ABCDshunt_function(omega)
 
+    def add_to_drawing(self, d, l = 1.5):
+        '''
+        Adds the resonator to a drawing object from schemdraw going right from the port
+        '''
+        d += elm.Inductor2().down().label(f"$L =$ {np.round(self.ind_val * 1e12, 1)} pH", loc='bottom')
+        d += elm.Line().right().length(l / 2)
+        d.pop()
+        d += elm.Line().right().length(l)
+        d.push()
+        d += elm.Capacitor().down().label(f"\n\n$C =$ {np.round(self.cap_val * 1e12, 3)} pF", loc='top')
+        d += elm.Line().left().length(l / 2)
+        d += elm.Ground()
+        d.pop()
+
 @dataclass
 class CoreResonator:
     n: int
@@ -454,6 +470,20 @@ class CoreResonator:
         return (self.cap_s_el.ABCDshunt_function(omega_s_arr) @
                 self.inv_el.abcd_function(omega_s_arr, omega_i_arr) @
                 self.cap_i_el.ABCDshunt_function(omega_i_arr))
+
+    def add_to_drawing(self, d, l = 1.5):
+        '''
+        Adds the resonator to a drawing object from schemdraw going right from the port
+        '''
+        d += elm.Inductor2().down().label(f"$L =$ {np.round(self.ind_val * 1e12, 1)} pH", loc='bottom')
+        d += elm.Line().right().length(l / 2)
+        d.pop()
+        d += elm.Line().right().length(l)
+        d.push()
+        d += elm.Capacitor().down().label(f"\n\n$C =$ {np.round(self.cap_val * 1e12, 3)} pF", loc='top')
+        d += elm.Line().left().length(l / 2)
+        d += elm.Ground()
+        d.pop()
 
 @dataclass
 class TlineL4Resonator(Resonator):
@@ -557,5 +587,11 @@ class TlineCoupler(Coupler):
         else:
             omega = omega_i_arr
         return self.tline_el.ABCDseries_function(omega)
+
+    def add_to_drawing(self, d , l = 1.5):
+        d += elm.Coax(
+            label=f"$\lambda/4$\n$Z_c$ = {np.round(1 / self.z_tline, 1)} $\Omega$").scale(
+            1).right()
+        d.push()
 
 
