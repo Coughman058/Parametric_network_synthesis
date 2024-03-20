@@ -7,20 +7,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 plt.ioff()
 
-# amp_cap_cpld_core_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\20240207_Giga_core_sweep.csv")
+amp_cap_cpld_core_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\NIST2024_SMAA_sweep.csv")
 resonators_3d_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\L_shaped_crossover_updatedconvergence_tlineZo_freq_width_gap_resheight.csv")
 core_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\Core_LCsweep_freq_Zres.csv")
 
 dep_var_num = 2
-SMAA_cap_cpld_core = False
-amp_tline_res = True
+SMAA_cap_cpld_core = True
+amp_tline_res = False
 amp_core_res = False
 #amp core:
 # constrained optimization, Nd
 if SMAA_cap_cpld_core:
     cols_to_exclude = []
     primary_cols = [0,1]
-    goals = [7e9, 20]
+    goals = [7.5e9, 15]
     import_file = amp_cap_cpld_core_NIST
     #find a pair here, then take the length and hold it constant
     interpfuncs = pi.interpolate_nd_hfss_mgoal_res(import_file, exclude_columns = cols_to_exclude, dep_var_num=dep_var_num)
