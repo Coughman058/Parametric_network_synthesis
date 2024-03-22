@@ -471,17 +471,17 @@ class CoreResonator:
                 self.inv_el.abcd_function(omega_s_arr, omega_i_arr) @
                 self.cap_i_el.ABCDshunt_function(omega_i_arr))
 
-    def add_to_drawing(self, d, l = 1.5):
+    def add_to_drawing(self, d, l = 2):
         '''
         Adds the resonator to a drawing object from schemdraw going right from the port
         '''
-        d += elm.Inductor2().down().label(f"$L =$ {np.round(self.ind_val * 1e12, 1)} pH", loc='bottom')
-        d += elm.Line().right().length(l / 2)
+        d += elm.Inductor2().down().label(f"$L =$ {np.round(self.ind_val * 1e12, 1)} pH", loc='top')
+        d += elm.Line().right().length(l)
         d.pop()
         d += elm.Line().right().length(l)
         d.push()
-        d += elm.Capacitor().down().label(f"\n\n$C =$ {np.round(self.cap_val * 1e12, 3)} pF", loc='top')
-        d += elm.Line().left().length(l / 2)
+        d += elm.Capacitor().down().label(f"\n\n$C =$ {np.round(self.cap_val * 1e12, 3)} pF", loc='bottom')
+        d += elm.Line().left().length(l)
         d += elm.Ground()
         d.pop()
 
@@ -525,6 +525,13 @@ class TlineL4Resonator(Resonator):
             omega = omega_i_arr
         return self.tline_el.ABCDshunt_function(omega)
 
+    def add_to_drawing(self, d, l = 1.5):
+        d += elm.Coax().down().label(
+            r"$\theta=$" + f"{np.round(self.theta_val * 360 / 2 / np.pi, 2)} \n$Z_c=$ {np.round(self.z_tline, 1)} $\Omega$",
+            loc='top')
+        d += elm.Ground()
+        d.pop()
+
 @dataclass
 class CapCoupler(Coupler):
     def __post_init__(self):
@@ -561,6 +568,12 @@ class CapCoupler(Coupler):
             omega = omega_i_arr
         return self.cap_el.ABCDseries_function(omega)
 
+    def add_to_drawing(self, d, l = 1.5):
+        d += elm.Capacitor(
+            label=f"C = {np.round(self.cap_val * 1e12, 3)} pF").scale(
+            1).right()
+        d.push()
+
 @dataclass
 class TlineCoupler(Coupler):
 
@@ -590,7 +603,7 @@ class TlineCoupler(Coupler):
 
     def add_to_drawing(self, d , l = 1.5):
         d += elm.Coax(
-            label=f"$\lambda/4$\n$Z_c$ = {np.round(1 / self.z_tline, 1)} $\Omega$").scale(
+            label=f"$\lambda/4$\n$Z_c$ = {np.round(self.z_tline, 1)} $\Omega$").scale(
             1).right()
         d.push()
 

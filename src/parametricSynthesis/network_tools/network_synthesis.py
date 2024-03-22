@@ -383,6 +383,30 @@ class Network:
 
         return compress_abcd_numerical(self.ABCD_mtxs_vs_frequency) #omega_s just for length
 
+    def draw_circuit(self, l = 1.5):
+        with schemdraw.Drawing() as d:
+            d += elm.Ground()
+            d += elm.RBox(label="$Z_0$").up()
+            for el in self.circuit_elements[:len(self.circuit_elements)//2+1]:
+                el.add_to_drawing(d, l = l)
+        return d
+
+    def scattering_from_inv_core_factors(self, inv_corr_factors):
+        self.gen_net_by_type(self, self.resonator_types, self.coupler_types, inv_corr_factors)
+
+        f_p_GHz = self.omega0_val/1e9/2/np.pi*2
+        f_arr_GHz = self.omega_0_val/1e9/2/np.pi+np.linspace(-self.dw/2, self.dw/2, 1001)
+
+        self.omega_s_arr = 2 * np.pi * f_arr_GHz * 1e9
+        self.omega_i_arr = (2 * np.pi * f_arr_GHz * 1e9 - 2 * np.pi * f_p_GHz * 1e9)
+
+        self.Smtx_j0 = self.Smtx_func(self.omega_s_arr, self.omega_i_arr)
+    def optimize_inv_core_factors(self, omega_s, omega_i):
+        '''
+        This function optimizes inverter corrections using the network gain and fractional bandwidth, then
+        returns the optimized inverter correction factors
+        '''
+
     def Smtx_func(self, omega_s, omega_i):
         ABCD_mtx = np.moveaxis(self.total_ABCD_func(omega_s, omega_i), 0, -1)
         return abcd_to_s(ABCD_mtx, 50)
