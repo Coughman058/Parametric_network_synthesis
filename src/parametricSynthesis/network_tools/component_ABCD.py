@@ -329,6 +329,10 @@ class DegenerateParametricInverterAmp:
         A3 = self.idler_inductor.ABCDshunt_function(omega_i_arr)
         return A1 @ A2 @ A3
 
+    def passive_abcd_function(self, omega_s_arr, omega_i_arr):
+        A1 = self.signal_inductor.ABCDshunt_function(omega_s_arr)
+        return A1
+
 @dataclass
 class Coupler:
     """
@@ -344,6 +348,8 @@ class Coupler:
     signal_or_idler_flag: str = 'signal'
     def abcd_function(self, omega_s, omega_i):
         pass
+    def passive_abcd_function(self, omega_s, omega_i):
+        return self.abcd_function(omega_s, omega_i)
 
 @dataclass
 class Resonator:
@@ -365,6 +371,9 @@ class Resonator:
         in the format Nx(2x2) where N is the number of frequency points
         '''
         pass
+
+    def passive_abcd_function(self, omega_s, omega_i):
+        return self.abcd_function(omega_s, omega_i)
 
     def compensate_for_couplers(self, c1: Coupler, c2: Coupler):
         '''
@@ -470,6 +479,10 @@ class CoreResonator:
         return (self.cap_s_el.ABCDshunt_function(omega_s_arr) @
                 self.inv_el.abcd_function(omega_s_arr, omega_i_arr) @
                 self.cap_i_el.ABCDshunt_function(omega_i_arr))
+
+    def passive_abcd_function(self, omega_s_arr, omega_i_arr):
+        return (self.cap_s_el.ABCDshunt_function(omega_s_arr) @
+                self.inv_el.passive_abcd_function(omega_s_arr, omega_i_arr))
 
     def add_to_drawing(self, d, l = 2):
         '''

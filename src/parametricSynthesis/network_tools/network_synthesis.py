@@ -239,6 +239,7 @@ class Network:
         assert self.resonator_types[0] == 'core'
 
         self.ABCD_methods = []
+        self.passive_ABCD_methods = []
         self.circuit_elements = []
 
         net_size = self.J.size - 1
@@ -374,6 +375,7 @@ class Network:
         #and finally get all the abcd methods
         for el in self.circuit_elements:
             self.ABCD_methods.append(el.abcd_function)#this automatically gets the order right
+            self.passive_ABCD_methods.append(el.passive_abcd_function)
 
     #now we need to create a function that can get the total ABCD matrix of the network
     def total_ABCD_func(self, omega_s, omega_i):
@@ -447,8 +449,8 @@ class Network:
         [(i, el) for (i, el) in enumerate(self.circuit_elements) if type(el) == CoreResonator][0][0]
 
         print("Generating ABCD Matrices...")
-        self.ABCD_mtxs_vs_frequency = [abcd(omega_s, omega_i) for abcd in self.ABCD_methods[:inverter_index+add_index]]
-
+        self.ABCD_mtxs_vs_frequency = [abcd(omega_s, omega_i) for abcd in self.passive_ABCD_methods[:inverter_index+add_index]]
+        print("last ABCD mtx: ", self.passive_ABCD_methods[inverter_index+add_index])
         return np.moveaxis(compress_abcd_numerical(self.ABCD_mtxs_vs_frequency),0,-1)
 
     def passive_impedance_seen_from_port(self, add_index=0, Z0 = 50):
@@ -490,3 +492,28 @@ class Network:
         Z = abcd_to_z(ABCD, Z0)
 
         return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + Z0)
+
+    def filter_impedance_analysis(self, debug = False):
+
+        fig, ax = plt.subplots()
+        passive_Z_from_inverter = self.passive_impedance_seen_from_inverter(add_index=0)
+        ax.plot(self.omega_s_arr / 2 / np.pi / 1e9, (1/passive_Z_from_inverter).real, label='real')
+        ax.plot(self.omega_s_arr / 2 / np.pi / 1e9,(1/passive_Z_from_inverter).imag, label='imag')
+        ax.grid()
+        ax.legend()
+        ax.set_title("Admittance from inverter")
+        plt.show()
+
+        passive_Z_from_array = self.passive_impedance_seen_from_core_mode()
+
+        fig, ax = plt.subplots()
+        ax.plot(self.omega_s_arr / 2 / np.pi / 1e9, (passive_Z_from_array).real, label='real')
+        ax.plot(self.omega_s_arr / 2 / np.pi / 1e9, (passive_Z_from_array).imag, label='imag')
+        print("Real impedance seen on-resonance: ", (passive_Z_from_array[len(passive_Z_from_array)//2]).real)
+        print("Imaginary impedance seen on-resonance: ", (passive_Z_from_array[len(passive_Z_from_array)//2]).imag)
+        print("Quality factor computed with Re[Z_ext]/Z_res: ", (passive_Z_from_array[len(passive_Z_from_array)//2]).real / self.Z[0])
+        # ax.set_ylim(0, 500)
+        ax.grid()
+        ax.set_title("Impedance seen from array resonator")
+        ax.legend()
+        plt.show()
