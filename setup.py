@@ -5,6 +5,7 @@ setup(
     version='0.5.0',
     packages = find_namespace_packages(where = 'src'),
     package_dir={"": "src"},
+    python_requires='>=3.9',
     install_requires=['setuptools',
                       'schemdraw',
                       'numpy',
@@ -18,5 +19,6 @@ setup(
                       'pandas',
                       'scipy',
                       'pyqt5',
-                      'proplot==0.9.5']
+                      'proplot==0.9.5',
+                      'tensorwaves']
 )
