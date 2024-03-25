@@ -30,10 +30,10 @@ Z_squid = w0 * L_squid
 # coupler_types = ['cap', 'cap', 'cap', 'cap', 'cap', 'cap', 'cap', 'cap', 'cap']
 
 power_G_db = 20
-g_arr = prototype_gs(power_G_db, type = 'chebyshev', n = 5, r_db = 5)
-z_arr = np.array([Z_squid, Z_squid*4/np.pi, Z_squid*4/np.pi, Z_squid*4/np.pi, Z_squid*4/np.pi, 50], dtype=float)
-resonator_types = ['core', 'l4','l4','l4','l4']
-coupler_types = ['l4', 'l4', 'l4', 'l4','l4']
+g_arr = prototype_gs(power_G_db, type = 'chebyshev', n = 3, r_db = 5)
+z_arr = np.array([Z_squid, Z_squid*4/np.pi, Z_squid*4/np.pi, 50], dtype=float)
+resonator_types = ['core', 'l4','l4']
+coupler_types = ['l4', 'l4', 'l4']
 
 inv_corr_factors = [1,1,1,1,1]
 

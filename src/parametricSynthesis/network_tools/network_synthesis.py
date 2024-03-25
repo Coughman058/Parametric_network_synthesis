@@ -449,53 +449,44 @@ class Network:
         print("Generating ABCD Matrices...")
         self.ABCD_mtxs_vs_frequency = [abcd(omega_s, omega_i) for abcd in self.ABCD_methods[:inverter_index+add_index]]
 
-        return compress_abcd_numerical(self.ABCD_mtxs_vs_frequency)  # omega_s just for length
+        return np.moveaxis(compress_abcd_numerical(self.ABCD_mtxs_vs_frequency),0,-1)
 
-    def passive_impedance_seen_from_port(self, add_index=0):
+    def passive_impedance_seen_from_port(self, add_index=0, Z0 = 50):
         '''
         This function calculates the impedance seen from the outside port.
         This is just Z00 for a one port network
         '''
-        ABCD = self.total_passive_ABCD(array=True, add_index = add_index)
-        Z = abcd_to_z(ABCD, self.Z0)
-        return Z[0,0]
+        ABCD = self.total_passive_ABCD_func(self.omega_s_arr, self.omega_i_arr, add_index = add_index)
+        Z = abcd_to_z(ABCD, Z0)
+        return Z
 
-    def passive_impedance_seen_from_core_mode(self, add_index=0, debug = False):
+    def passive_impedance_seen_from_core_mode(self, add_index=2, Z0 = 50):
         '''
         This function calculates the impedance seen from the array port
         of the network, without including the array mode at all.
         '''
+        ABCD = self.total_passive_ABCD_func(self.omega_s_arr, self.omega_i_arr, add_index=add_index)
+        Z = abcd_to_z(ABCD, Z0)
+        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + Z0)
 
-        ABCD = self.total_passive_ABCD(array=False, add_index = -1+add_index, debug = debug)
-        if self.Ftype == 'cap_cpld_lumped' or self.Ftype == 'cap_cpld_l4':
-            negative_first_cap_symbol = sp.symbols('C_comp')
-            negative_first_cap = Capacitor(omega_symbol=self.omega_from_inverter, symbol = negative_first_cap_symbol, val = -self.CC[0])
-            ABCD_comp = negative_first_cap.ABCDshunt()
-            self.net_subs.append((negative_first_cap_symbol, negative_first_cap.val))
-            ABCD_total = ABCD * ABCD_comp
-        else:
-            ABCD_total = ABCD
-        Z = abcd_to_z(ABCD_total, self.Z0)
-        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
-
-    def passive_impedance_seen_from_array(self, add_index = 0):
+    def passive_impedance_seen_from_array(self, add_index = 2, Z0 = 50):
         '''
         This function calculates the impedance seen from the array port
         of the network including the array inductance
         '''
-        ABCD = self.total_passive_ABCD(array=False, add_index = add_index)
+        ABCD = self.total_passive_ABCD_func(self.omega_s_arr, self.omega_i_arr, add_index = add_index)
 
-        Z = abcd_to_z(ABCD, self.Z0)
+        Z = abcd_to_z(ABCD, Z0)
 
-        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
+        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + Z0)
 
-    def passive_impedance_seen_from_inverter(self, add_index = 0, debug = False):
+    def passive_impedance_seen_from_inverter(self, add_index = 0, Z0 = 50):
         '''
         This function calculates the impedance seen from the array port
         of the network including the array inductance
         '''
-        ABCD = self.total_passive_ABCD(array=True, add_index = add_index, debug = debug)
+        ABCD = self.total_passive_ABCD_func(self.omega_s_arr, self.omega_i_arr, add_index = add_index)
 
-        Z = abcd_to_z(ABCD, self.Z0)
+        Z = abcd_to_z(ABCD, Z0)
 
-        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + self.Z0)
+        return Z[1, 1] - Z[0, 1] * Z[1, 0] / (Z[0, 0] + Z0)
