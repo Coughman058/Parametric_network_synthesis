@@ -11,10 +11,15 @@ amp_cap_cpld_core_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitH
 resonators_3d_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\L_shaped_crossover_updatedconvergence_tlineZo_freq_width_gap_resheight.csv")
 core_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\Core_LCsweep_freq_Zres.csv")
 
+resonators_3d_patched_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\tline_cpld_tline\L_shaped_crossover_updatedmodel_tlineZo_freq_width_gap_resheight.csv")
+tline_inverters_no_crossovers_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Documents\GitHub\Parametric_network_synthesis\testing\Parameter_interp_files\NIST_2024\tline_cpld_tline\NoCrossover_quartwave_tlineZo_freq_wrt_widthgap_resheight.csv")
+
 dep_var_num = 2
-SMAA_cap_cpld_core = True
+SMAA_cap_cpld_core = False
 amp_tline_res = False
+amp_tline_res_patched = True
 amp_core_res = False
+amp_tline_inv = False
 #amp core:
 # constrained optimization, Nd
 if SMAA_cap_cpld_core:
@@ -37,7 +42,7 @@ if SMAA_cap_cpld_core:
 if amp_tline_res:
     cols_to_exclude = []
     primary_cols = [0, 1]
-    goals = [8.9204e9, 20]  # res1
+    goals = [7.81e9, 15.8]
     # goals = []
     import_file = resonators_3d_NIST
     # find a pair here, then take the length and hold it constant
@@ -53,6 +58,47 @@ if amp_tline_res:
                                                exclude_column=cols_to_exclude,
                                                primary_cols=primary_cols,
                                                plot_constrained=True)
+
+if amp_tline_res_patched:
+    cols_to_exclude = []
+    primary_cols = [0, 1]
+    goals = [7.5738e9, 15.5]
+    # goals = []
+    import_file = resonators_3d_patched_NIST
+    # find a pair here, then take the length and hold it constant
+    interpfuncs = pi.interpolate_nd_hfss_mgoal_res(import_file, exclude_columns=cols_to_exclude,
+                                                   dep_var_num=dep_var_num)
+    print("Interpolation successful")
+    opt_res_vals = pi.optimize_for_goal(interpfuncs, goals)[0]
+    display_funcs = interpfuncs
+    print("Optimization successful")
+    print("opt_res_arr", opt_res_vals)
+    fig, axs = pi.display_interpolation_result(display_funcs, import_file,
+                                               optimization=[opt_res_vals, opt_res_vals],
+                                               exclude_column=cols_to_exclude,
+                                               primary_cols=primary_cols,
+                                               plot_constrained=True)
+
+if amp_tline_inv:
+    cols_to_exclude = []
+    primary_cols = [0, 1]
+    goals = [58.5, 6.5e9]
+    # goals = []
+    import_file = tline_inverters_no_crossovers_NIST
+    # find a pair here, then take the length and hold it constant
+    interpfuncs = pi.interpolate_nd_hfss_mgoal_res(import_file, exclude_columns=cols_to_exclude,
+                                                   dep_var_num=dep_var_num)
+    print("Interpolation successful")
+    opt_res_vals = pi.optimize_for_goal(interpfuncs, goals)[0]
+    display_funcs = interpfuncs
+    print("Optimization successful")
+    print("opt_res_arr", opt_res_vals)
+    fig, axs = pi.display_interpolation_result(display_funcs, import_file,
+                                               optimization=[opt_res_vals, opt_res_vals],
+                                               exclude_column=cols_to_exclude,
+                                               primary_cols=primary_cols,
+                                               plot_constrained=True)
+
 if amp_core_res:
     cols_to_exclude = []
     primary_cols = [0, 1]
