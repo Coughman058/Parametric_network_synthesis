@@ -16,8 +16,8 @@ tline_inverters_no_crossovers_NIST = pi.import_HFSS_csv(r"C:\Users\Hatlab-RRK\Do
 
 dep_var_num = 2
 SMAA_cap_cpld_core = False
-amp_tline_res = False
-amp_tline_res_patched = True
+amp_tline_res = True
+amp_tline_res_patched = False
 amp_core_res = False
 amp_tline_inv = False
 #amp core:
@@ -41,8 +41,8 @@ if SMAA_cap_cpld_core:
                                                plot_constrained=True)
 if amp_tline_res:
     cols_to_exclude = []
-    primary_cols = [0, 1]
-    goals = [7.81e9, 15.8]
+    primary_cols = [0, 2]
+    goals = [6.5e9, 40]
     # goals = []
     import_file = resonators_3d_NIST
     # find a pair here, then take the length and hold it constant
@@ -62,7 +62,7 @@ if amp_tline_res:
 if amp_tline_res_patched:
     cols_to_exclude = []
     primary_cols = [0, 1]
-    goals = [7.5738e9, 15.5]
+    goals = [6.5e9, 17.7]
     # goals = []
     import_file = resonators_3d_patched_NIST
     # find a pair here, then take the length and hold it constant
@@ -82,7 +82,7 @@ if amp_tline_res_patched:
 if amp_tline_inv:
     cols_to_exclude = []
     primary_cols = [0, 1]
-    goals = [58.5, 6.5e9]
+    goals = [64.5, 6.5e9]
     # goals = []
     import_file = tline_inverters_no_crossovers_NIST
     # find a pair here, then take the length and hold it constant
