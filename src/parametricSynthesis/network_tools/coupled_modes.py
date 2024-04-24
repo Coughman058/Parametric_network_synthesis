@@ -358,27 +358,30 @@ def calculate_scattering_for_config(mMtxN,
   fig.tight_layout()
   return fig
 
-def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
-  '''
-  This will eliminate a mode with index k from the mMtx
-  and return a new one with the elementwise formula below
 
-  mMtx[i,j]' = mMtx[i,j] - mMtx[i,k]*mMtx[k,i]/(mMtx[k,k])
-  '''
-  k = mode_index_to_elim
-  mMtx_rank = mMtx.shape[0]
-  mMtx_empty = np.zeros((mMtx_rank, mMtx_rank)).astype(int)
-  mMtx_new = sp.Matrix(mMtx_empty)
-  for i in range(mMtx_rank):
-    for j in range(mMtx_rank):
-      if j!= k and i!=k:
-        mMtx_new[i, j] = mMtx[i,j] - mMtx[i,k]*mMtx[k,j]/(mMtx[k,k])
-  mMtx_new.row_del(k)
-  mMtx_new.col_del(k)
-  return mMtx_new
 
-calc_gamma_m = lambda n, ns: (sp.prod([ns['g%i'%i] for i in range(n)]))**(sp.Rational(1,n))
-gs_to_betas = lambda gs, dw, g0: dw/(2*g0*np.sqrt(gs*np.roll(gs, -1)))[1]
+#
+# def ModeReduction(mode_index_to_elim: int, mMtx: sp.Matrix):
+#   '''
+#   This will eliminate a mode with index k from the mMtx
+#   and return a new one with the elementwise formula below
+#
+#   mMtx[i,j]' = mMtx[i,j] - mMtx[i,k]*mMtx[k,i]/(mMtx[k,k])
+#   '''
+#   k = mode_index_to_elim
+#   mMtx_rank = mMtx.shape[0]
+#   mMtx_empty = np.zeros((mMtx_rank, mMtx_rank)).astype(int)
+#   mMtx_new = sp.Matrix(mMtx_empty)
+#   for i in range(mMtx_rank):
+#     for j in range(mMtx_rank):
+#       if j!= k and i!=k:
+#         mMtx_new[i, j] = mMtx[i,j] - mMtx[i,k]*mMtx[k,j]/(mMtx[k,k])
+#   mMtx_new.row_del(k)
+#   mMtx_new.col_del(k)
+#   return mMtx_new
+#
+# calc_gamma_m = lambda n, ns: (sp.prod([ns['g%i'%i] for i in range(n)]))**(sp.Rational(1,n))
+# gs_to_betas = lambda gs, dw, g0: dw/(2*g0*np.sqrt(gs*np.roll(gs, -1)))[1]
 
 if __name__ == "__main__":
     #define the namespace
