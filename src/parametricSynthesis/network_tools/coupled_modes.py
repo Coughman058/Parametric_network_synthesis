@@ -38,6 +38,7 @@ def define_symbols_in_namespace(ns, num_modes = 10, num_pumps = 10):
                     sig_freqs, mode_freqs, sig_dets, pump_det, filter_deltas, filter_betas, misc_symbols]
     for symbols in symbols_list: ns.update(symbols)
 
+calc_gamma_m = lambda n, ns: (sp.prod([ns['g%i'%i] for i in range(n)]))**(sp.Rational(1,n))
 #generate the empty mMtx:
 class Mode_Diag():
     def __init__(self, num_modes, namespace = locals()):
